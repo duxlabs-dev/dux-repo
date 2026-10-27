@@ -11,8 +11,8 @@
 %endif
 
 Name:           ghostty
-Version:        1.3.1
-Release:        2%{?dist}
+Version:        1.4.0
+Release:        1%{?dist}
 Summary:        Fast, feature-rich, and cross-platform terminal emulator that uses platform-native UI and GPU acceleration
 
 License:        MIT
@@ -180,4 +180,7 @@ rm -f "%{buildroot}%{_prefix}/share/terminfo/g/ghostty"
 %{ghostty_pkgconfig_dir}/libghostty-vt.pc
 
 %changelog
+* Tue Oct 27 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1.4.0-1
+- update to 1.4.0
+
 %autochangelog
