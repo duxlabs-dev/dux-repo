@@ -83,7 +83,12 @@ zig-toolchain/zig version
 
 # Fetch every dependency, lazy ones included, into ./zig-pkg so %%build runs offline.
 # zig 0.17 keeps the global cache as archives that --system cannot read, so fetch-zig-cache.sh is not used.
-ZIG_GLOBAL_CACHE_DIR=$PWD/zig-deps zig-toolchain/zig build --fetch=all
+# deps.files.ghostty.org drops connections under load; completed packages persist in zig-pkg/, so retries only fetch the rest.
+for attempt in $(seq 1 10); do
+    ZIG_GLOBAL_CACHE_DIR=$PWD/zig-deps zig-toolchain/zig build --fetch=all && break
+    [ "$attempt" -eq 10 ] && exit 1
+    sleep $((attempt * 15))
+done
 
 %build
 ZIG_BIN=$PWD/zig-toolchain/zig
@@ -124,6 +129,10 @@ if [ -z "$PKGCONFIG_SOURCE_FILE" ]; then
 fi
 mkdir -p "%{buildroot}%{ghostty_pkgconfig_dir}"
 cp -a "$PKGCONFIG_SOURCE_FILE" "%{buildroot}%{ghostty_pkgconfig_dir}/libghostty-vt.pc"
+# Zig 0.17 writes the DESTDIR staging path into prefix=
+sed -i 's|^prefix=.*|prefix=%{_prefix}|' %{buildroot}%{ghostty_pkgconfig_dir}/libghostty-vt.pc
+# Zig stores archive members under .zig-cache/ paths, which brp-strip cannot handle; ship the shared library only.
+rm -f %{buildroot}%{ghostty_libdir}/libghostty-vt.a %{buildroot}%{ghostty_pkgconfig_dir}/libghostty-vt-static.pc
 
 %if 0%{?fedora} >= 42
 rm -f "%{buildroot}%{_prefix}/share/terminfo/g/ghostty"
@@ -174,8 +183,6 @@ rm -f "%{buildroot}%{_prefix}/share/terminfo/g/ghostty"
 %{_includedir}/ghostty/
 %{ghostty_libdir}/libghostty-vt.so
 %{ghostty_pkgconfig_dir}/libghostty-vt.pc
-%{ghostty_pkgconfig_dir}/libghostty-vt-static.pc
-%{ghostty_libdir}/libghostty-vt.a
 
 %changelog
 * Wed Oct 28 2026 Purian23 <purian23@users.noreply.github.com> - 1.4.0-2

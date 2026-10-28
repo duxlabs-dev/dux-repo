@@ -2,8 +2,8 @@
 
 export HOME = $(CURDIR)
 DEB_VERSION := $(shell dpkg-parsechangelog -S Version)
-# Extract upstream version: remove Debian suffixes (.db[0-9] or db[0-9]) and ppa suffixes, then trim trailing dots/dashes
-UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed -E 's/(\\.db|db)[0-9]+$$//' | sed 's/ppa[0-9]*$$//' | sed 's/[.-]$$//')
+# Extract upstream version: drop the OBS build suffix (+N.M), then .dbN/dbN and ppaN suffixes, then trailing dots/dashes
+UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed -E 's/\+[0-9.]+$$//; s/(\\.db|db)[0-9]+$$//' | sed 's/ppa[0-9]*$$//' | sed 's/[.-]$$//')
 THEME_HASH := N-V-__8AAJ3vBQAq1fLMh5J8uWLkeDLS6WAdR2x5KcrmEyz6
 DEB_HOST_ARCH_CPU ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_CPU)
 STAGE_DIR := $(CURDIR)/debian/tmp
@@ -85,6 +85,8 @@ do \
 		break; \
 	fi; \
 done; \
+sed -i 's|^prefix=.*|prefix=/usr|' "$(STAGE_DIR)/usr/share/pkgconfig/libghostty-vt.pc"; \
+rm -f "$(STAGE_DIR)/usr/lib/libghostty-vt.a" "$(STAGE_DIR)/usr/share/pkgconfig/libghostty-vt-static.pc"; \
 SYSTEMD_SERVICE_DEST="$(STAGE_DIR)/usr/lib/systemd/user/app-com.mitchellh.ghostty.service"; \
 mkdir -p "$(STAGE_DIR)/usr/lib/systemd/user"; \
 if [ ! -f "$$SYSTEMD_SERVICE_DEST" ]; then \

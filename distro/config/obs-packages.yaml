@@ -466,8 +466,7 @@ groups:
     - dux-files
     - dms-greeter
     - dgop
-    # ghostty held out of the scheduled run until the supervised 1.4.0 upload
-    # (needs zig17 published on OBS first). Re-add once 1.4.0 builds green.
+    - ghostty
     - matugen
     - matugen-snapshot
     - niri

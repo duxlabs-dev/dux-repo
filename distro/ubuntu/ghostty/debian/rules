@@ -72,6 +72,8 @@ do \
 		break; \
 	fi; \
 done; \
+sed -i 's|^prefix=.*|prefix=/usr|' "$(STAGE_DIR)/usr/share/pkgconfig/libghostty-vt.pc"; \
+rm -f "$(STAGE_DIR)/usr/lib/libghostty-vt.a" "$(STAGE_DIR)/usr/share/pkgconfig/libghostty-vt-static.pc"; \
 SYSTEMD_SERVICE_DEST="$(STAGE_DIR)/usr/lib/systemd/user/app-com.mitchellh.ghostty.service"; \
 mkdir -p "$(STAGE_DIR)/usr/lib/systemd/user"; \
 if [ ! -f "$$SYSTEMD_SERVICE_DEST" ]; then \

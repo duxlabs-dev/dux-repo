@@ -171,6 +171,8 @@ do
     fi
 done
 rm -f %{buildroot}%{_libdir}/pkgconfig/libghostty-vt.pc
+# Zig 0.17 writes the DESTDIR staging path into prefix=
+sed -i 's|^prefix=.*|prefix=%{_prefix}|' %{buildroot}%{_datadir}/pkgconfig/libghostty-vt*.pc
 
 # Build locale file list from actual outputs to avoid packaging errors on missing dirs.
 # Use -mindepth 1 so parent locale dirs (es_BO, ko_KR, etc.) are owned
