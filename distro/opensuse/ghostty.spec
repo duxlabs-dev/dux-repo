@@ -281,6 +281,8 @@ This package contains the headers and pkg-config metadata for the Ghostty VT lib
 %{ghostty_libdir}/libghostty-vt.so.0
 %{ghostty_libdir}/libghostty-vt.so.0.1.0
 %{_datadir}/pkgconfig/libghostty-vt.pc
+%{_datadir}/pkgconfig/libghostty-vt-static.pc
+%{ghostty_libdir}/libghostty-vt.a
 
 %changelog
 * Sat Jan 10 2026 Avenge Media <AvengeMedia.US@gmail.com> - 1.2.3-1

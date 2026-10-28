@@ -1,0 +1,3 @@
+# Keep .gitignore and *.a inside vendored zig-pkg/; Zig fails the build if any are missing.
+tar-ignore = .git
+tar-ignore = .zig-cache

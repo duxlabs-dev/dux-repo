@@ -174,6 +174,8 @@ rm -f "%{buildroot}%{_prefix}/share/terminfo/g/ghostty"
 %{_includedir}/ghostty/
 %{ghostty_libdir}/libghostty-vt.so
 %{ghostty_pkgconfig_dir}/libghostty-vt.pc
+%{ghostty_pkgconfig_dir}/libghostty-vt-static.pc
+%{ghostty_libdir}/libghostty-vt.a
 
 %changelog
 * Wed Oct 28 2026 Purian23 <purian23@users.noreply.github.com> - 1.4.0-2

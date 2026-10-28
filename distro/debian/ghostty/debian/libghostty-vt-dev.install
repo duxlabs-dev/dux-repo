@@ -1,4 +1,6 @@
 usr/include/ghostty/
+usr/lib/libghostty-vt.a
 usr/lib/libghostty-vt.so
 usr/lib/libghostty-vt.so.0*
 usr/share/pkgconfig/libghostty-vt.pc
+usr/share/pkgconfig/libghostty-vt-static.pc
