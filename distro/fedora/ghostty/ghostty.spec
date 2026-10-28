@@ -1,4 +1,8 @@
-%global zig_minimum_version 0.15.0
+# Fedora only: 1.4 needs GTK >= 4.18 and libadwaita >= 1.7, EL 10 has 4.16 / 1.6. EL chroots are excluded by the COPR chroot denylist.
+# Ghostty needs zig 0.17, which Fedora does not ship, so the official ziglang.org build is bundled as a build-only toolchain.
+%global zig_version         0.17.0
+%global zig_x86_64_sha256   1cbe9df9f27e6b78d14ccbca43b6703a404ef79ef1c463de901d7f088d4e2026
+%global zig_aarch64_sha256  9e8d11661d4ae3bd57702a3832781e23ad151dde5798e16a5ccd503f65234ff8
 
 %global _missing_build_ids_terminate_build 0
 %global debug_package %{nil}
@@ -6,38 +10,31 @@
 %global ghostty_libdir %{_prefix}/lib
 %global ghostty_pkgconfig_dir %{_prefix}/share/pkgconfig
 
-%if 0%{?rhel}
-%global ghostty_vendored_deps -fno-sys=harfbuzz -fno-sys=freetype -fno-sys=fontconfig -fno-sys=libpng -fno-sys=zlib -fno-sys=oniguruma
-%endif
-
 Name:           ghostty
 Version:        1.4.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Fast, feature-rich, and cross-platform terminal emulator that uses platform-native UI and GPU acceleration
 
 License:        MIT
 URL:            https://github.com/ghostty-org/ghostty
 Source0:        https://release.files.ghostty.org/%{version}/ghostty-%{version}.tar.gz
+# Both arches go in the SRPM; %%prep unpacks the one matching the build arch
+Source1:        https://ziglang.org/download/%{zig_version}/zig-x86_64-linux-%{zig_version}.tar.xz
+Source2:        https://ziglang.org/download/%{zig_version}/zig-aarch64-linux-%{zig_version}.tar.xz
 
-%if 0%{?rhel}
-# EPEL ships zig for x86_64 only
-ExclusiveArch: x86_64
-%else
 ExclusiveArch: x86_64 aarch64
-%endif
 
-BuildRequires: zig >= %{zig_minimum_version}
-%if 0%{?rhel}
-BuildRequires: zig < 0.16
-%endif
+BuildRequires: tar
+BuildRequires: xz
 BuildRequires: blueprint-compiler
 BuildRequires: fontconfig-devel
 BuildRequires: freetype-devel
 BuildRequires: glib2-devel
-BuildRequires: gtk4-devel
-BuildRequires: gtk4-layer-shell-devel
+BuildRequires: gtk4-devel >= 4.18
+BuildRequires: gtk4-layer-shell-devel >= 1.0.4
+BuildRequires: pkgconfig(egl)
 BuildRequires: harfbuzz-devel
-BuildRequires: libadwaita-devel
+BuildRequires: libadwaita-devel >= 1.7
 BuildRequires: libpng-devel
 BuildRequires: oniguruma-devel
 BuildRequires: pixman-devel
@@ -49,9 +46,9 @@ BuildRequires: curl
 Requires: fontconfig
 Requires: freetype
 Requires: glib2
-Requires: gtk4
+Requires: gtk4 >= 4.18
 Requires: harfbuzz
-Requires: libadwaita
+Requires: libadwaita >= 1.7
 Requires: libpng
 Requires: oniguruma
 Requires: pixman
@@ -71,33 +68,43 @@ Includes headers and pkg-config metadata for the libghostty-vt API.
 %prep
 %setup -q -n ghostty-%{version}
 
-# Fetch remote dependencies to a local Zig cache so build is reproducible and offline-safe
-ZIG_GLOBAL_CACHE_DIR=$PWD/zig-deps
-if [ -x ./nix/build-support/fetch-zig-cache.sh ]; then
-    ZIG_GLOBAL_CACHE_DIR=$ZIG_GLOBAL_CACHE_DIR ./nix/build-support/fetch-zig-cache.sh
-else
-    echo "WARNING: fetch-zig-cache.sh not found; proceeding with direct network access."
-fi
+%ifarch x86_64
+ZIG_TARBALL=%{SOURCE1}
+ZIG_SHA256=%{zig_x86_64_sha256}
+%endif
+%ifarch aarch64
+ZIG_TARBALL=%{SOURCE2}
+ZIG_SHA256=%{zig_aarch64_sha256}
+%endif
+echo "$ZIG_SHA256  $ZIG_TARBALL" | sha256sum -c -
+mkdir -p zig-toolchain
+tar -C zig-toolchain --strip-components=1 -xJf "$ZIG_TARBALL"
+zig-toolchain/zig version
+
+# Fetch every dependency, lazy ones included, into ./zig-pkg so %%build runs offline.
+# zig 0.17 keeps the global cache as archives that --system cannot read, so fetch-zig-cache.sh is not used.
+ZIG_GLOBAL_CACHE_DIR=$PWD/zig-deps zig-toolchain/zig build --fetch=all
 
 %build
-ZIG_BIN=%{_bindir}/zig
+ZIG_BIN=$PWD/zig-toolchain/zig
 ZIG_GLOBAL_CACHE_DIR=$PWD/zig-deps
-if [ ! -d "$ZIG_GLOBAL_CACHE_DIR/p" ]; then
-    echo "ERROR: Zig cache directory not found at $ZIG_GLOBAL_CACHE_DIR/p; expected pre-fetched deps."
+ZIG_PKG_DIR=$PWD/zig-pkg
+if [ ! -d "$ZIG_PKG_DIR" ]; then
+    echo "ERROR: Zig package directory not found at $ZIG_PKG_DIR; expected pre-fetched deps."
     exit 1
 fi
 
 export ZIG_GLOBAL_CACHE_DIR
 mkdir -p %{_builddir}/ghostty-buildroot
 DESTDIR=%{_builddir}/ghostty-buildroot "$ZIG_BIN" build install \
-    --system "$ZIG_GLOBAL_CACHE_DIR/p" \
+    --system "$ZIG_PKG_DIR" \
     --summary all \
     --prefix "%{_prefix}" \
     -Dversion-string=%{version}-%{release} \
     -Doptimize=ReleaseFast \
     -Dcpu=baseline \
     -Dpie=true \
-    -Demit-docs=false%{?ghostty_vendored_deps: %{ghostty_vendored_deps}}
+    -Demit-docs=false
 
 %install
 cp -a %{_builddir}/ghostty-buildroot/* %{buildroot}/
@@ -163,23 +170,17 @@ rm -f "%{buildroot}%{_prefix}/share/terminfo/g/ghostty"
 %endif
 
 %files devel
-%dir %{_includedir}/ghostty
-%dir %{_includedir}/ghostty/vt
-%{_includedir}/ghostty/vt.h
-%{_includedir}/ghostty/vt/allocator.h
-%{_includedir}/ghostty/vt/color.h
-%{_includedir}/ghostty/vt/key.h
-%{_includedir}/ghostty/vt/key/encoder.h
-%{_includedir}/ghostty/vt/key/event.h
-%{_includedir}/ghostty/vt/osc.h
-%{_includedir}/ghostty/vt/paste.h
-%{_includedir}/ghostty/vt/result.h
-%{_includedir}/ghostty/vt/sgr.h
-%{_includedir}/ghostty/vt/wasm.h
+# 1.4 adds many vt headers, so own the whole tree instead of listing them
+%{_includedir}/ghostty/
 %{ghostty_libdir}/libghostty-vt.so
 %{ghostty_pkgconfig_dir}/libghostty-vt.pc
 
 %changelog
+* Wed Oct 28 2026 Purian23 <purian23@users.noreply.github.com> - 1.4.0-2
+- Build with a bundled official Zig 0.17.0 toolchain (1.4.0 needs zig >= 0.17)
+- Require GTK >= 4.18, libadwaita >= 1.7, gtk4-layer-shell >= 1.0.4 and system EGL
+- Drop EL 10 support: its GTK 4.16 and libadwaita 1.6 are too old for 1.4
+
 * Tue Oct 27 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1.4.0-1
 - update to 1.4.0
 

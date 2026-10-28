@@ -17,11 +17,12 @@ if [[ ! -f ~/.config/copr ]]; then
     exit 1
 fi
 
-# Chroots a package must never build in: Fedora ships these itself, and EPEL zig is x86_64 only
+# Chroots a package must never build in: Fedora ships these itself, or EL 10 libraries are too old
 chroot_denylist() {
     case "$1" in
         greetd|gtk4-layer-shell|cava|alacritty|xwayland-satellite) echo "fedora-*" ;;
-        ghostty) echo "epel-10-aarch64,centos-stream-10-aarch64" ;;
+        # 1.4 needs GTK >= 4.18 and libadwaita >= 1.7; EL 10 has 4.16 / 1.6
+        ghostty) echo "epel-*,centos-stream-*" ;;
     esac
 }
 
