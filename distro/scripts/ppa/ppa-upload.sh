@@ -1536,17 +1536,17 @@ if yes | DEBIAN_FRONTEND=noninteractive debuild $DEBUILD_LINTIAN_FLAG -S $DEBUIL
     success "Source package built successfully!"
 
     if [ "$PACKAGE_NAME" = "ghostty" ]; then
-        info "Verifying zig-deps/ inclusion in source tarball..."
+        info "Verifying zig-pkg/ inclusion in source tarball..."
         TARBALL=$(find "$TEMP_DIR" -name "${PACKAGE_NAME}_*.orig.tar.xz" -type f | head -1)
         if [ -n "$TARBALL" ]; then
-            if tar -tf "$TARBALL" 2>/dev/null | grep -q "zig-deps/p/"; then
-                success "Verified: zig-deps/p/ included in source tarball"
-                DEP_COUNT=$(tar -tf "$TARBALL" 2>/dev/null | grep "zig-deps/p/" | grep -c "/build.zig$" || echo "0")
+            if tar -tf "$TARBALL" 2>/dev/null | grep -q "/zig-pkg/"; then
+                success "Verified: zig-pkg/ included in source tarball"
+                DEP_COUNT=$(tar -tf "$TARBALL" 2>/dev/null | grep -cE "/zig-pkg/[^/]+/$" || echo "0")
                 if [ "$DEP_COUNT" -gt 0 ]; then
-                    info "Tarball contains approximately $DEP_COUNT Zig dependencies"
+                    info "Tarball contains $DEP_COUNT Zig dependencies"
                 fi
             else
-                error "zig-deps/p/ NOT found in source tarball!"
+                error "zig-pkg/ NOT found in source tarball!"
                 error "The tarball will fail to build on Launchpad"
                 exit 1
             fi
