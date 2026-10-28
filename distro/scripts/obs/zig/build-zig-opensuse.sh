@@ -22,16 +22,16 @@
 #
 # SPEC FILE FLOW:
 #   %prep:
-#     - %setup -q -c creates zig16-0.16.0/ directory
-#     - tar -xJf extracts zig-x86_64-linux-0.16.0.tar.xz (on x86_64)
+#     - %setup -q -c creates zig17-0.17.0/ directory
+#     - tar -xJf extracts zig-x86_64-linux-0.17.0.tar.xz (on x86_64)
 #   %build:
 #     - Nothing (binary package)
 #   %install:
-#     - cp -a zig-x86_64-linux-0.16.0 to /usr/lib64/zig-0.16.0
-#     - ln -s to /usr/bin/zig-0.16
+#     - cp -a zig-x86_64-linux-0.17.0 to /usr/lib64/zig-0.17.0
+#     - ln -s to /usr/bin/zig-0.17
 #
 # USAGE:
-#   ./build-zig-opensuse.sh zig16 /tmp/output
+#   ./build-zig-opensuse.sh zig17 /tmp/output
 #
 # ==============================================================================
 
@@ -45,7 +45,7 @@ init_common
 
 # Check arguments
 if [[ $# -lt 1 ]]; then
-    echo "Usage: $0 <zig15|zig16> [output_dir]"
+    echo "Usage: $0 <zig16|zig17> [output_dir]"
     exit 1
 fi
 
@@ -53,25 +53,23 @@ PACKAGE="$1"
 OUTPUT_DIR="${2:-/tmp/zig-build}"
 
 # Validate package
-if [[ "$PACKAGE" != "zig15" && "$PACKAGE" != "zig16" ]]; then
-    log_error "Package must be zig15 or zig16"
-    exit 1
-fi
+case "$PACKAGE" in
+    zig16|zig17) ;;
+    *)
+        log_error "Package must be zig16 or zig17"
+        exit 1
+        ;;
+esac
 
 # Version configuration
-if [[ "$PACKAGE" == "zig15" ]]; then
-    ZIG_VERSION="0.15.2"
-    ZIG_X86_64_TARBALL="zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
-    ZIG_AARCH64_TARBALL="zig-aarch64-linux-${ZIG_VERSION}.tar.xz"
-    ZIG_X86_64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_X86_64_TARBALL}"
-    ZIG_AARCH64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_AARCH64_TARBALL}"
-else
-    ZIG_VERSION="0.16.0"
-    ZIG_X86_64_TARBALL="zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
-    ZIG_AARCH64_TARBALL="zig-aarch64-linux-${ZIG_VERSION}.tar.xz"
-    ZIG_X86_64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_X86_64_TARBALL}"
-    ZIG_AARCH64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_AARCH64_TARBALL}"
-fi
+case "$PACKAGE" in
+    zig16) ZIG_VERSION="0.16.0" ;;
+    zig17) ZIG_VERSION="0.17.0" ;;
+esac
+ZIG_X86_64_TARBALL="zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
+ZIG_AARCH64_TARBALL="zig-aarch64-linux-${ZIG_VERSION}.tar.xz"
+ZIG_X86_64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_X86_64_TARBALL}"
+ZIG_AARCH64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_AARCH64_TARBALL}"
 
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 SPEC_FILE="$REPO_ROOT/distro/opensuse/zig/${PACKAGE}.spec"

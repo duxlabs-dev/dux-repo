@@ -4,7 +4,7 @@ export HOME = $(CURDIR)
 DEB_VERSION := $(shell dpkg-parsechangelog -S Version)
 # Extract upstream version: remove Debian suffixes (.db[0-9] or db[0-9]) and ppa suffixes, then trim trailing dots/dashes
 UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed -E 's/(\\.db|db)[0-9]+$$//' | sed 's/ppa[0-9]*$$//' | sed 's/[.-]$$//')
-THEME_HASH := N-V-__8AABVbAwBwDRyZONfx553tvMW8_A2OKUoLzPUSRiLF
+THEME_HASH := N-V-__8AAJ3vBQAq1fLMh5J8uWLkeDLS6WAdR2x5KcrmEyz6
 DEB_HOST_ARCH_CPU ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_CPU)
 STAGE_DIR := $(CURDIR)/debian/tmp
 
@@ -17,7 +17,7 @@ else
 endif
 
 GHOSTTY_BUILD_FLAGS = \
-	--system $(CURDIR)/zig-deps/p \
+	--system $(CURDIR)/zig-pkg \
 	--prefix /usr \
 	-Dversion-string=$(UPSTREAM_VERSION) \
 	-Doptimize=ReleaseFast \
@@ -28,14 +28,14 @@ GHOSTTY_BUILD_FLAGS = \
 
 define select_zig_bin
 ZIG_BIN=""; \
-if [ -x /usr/bin/zig-0.15 ]; then \
-	ZIG_BIN="/usr/bin/zig-0.15"; \
+if [ -x /usr/bin/zig-0.17 ]; then \
+	ZIG_BIN="/usr/bin/zig-0.17"; \
 elif [ -x /usr/bin/zig ]; then \
 	ZIG_BIN="/usr/bin/zig"; \
 elif [ -x "$(ZIG_LOCAL_BIN)" ]; then \
 	ZIG_BIN="$(ZIG_LOCAL_BIN)"; \
 else \
-	echo "ERROR: No compatible zig binary found (/usr/bin/zig-0.15, /usr/bin/zig, or $(ZIG_LOCAL_BIN))"; \
+	echo "ERROR: No compatible zig binary found (/usr/bin/zig-0.17, /usr/bin/zig, or $(ZIG_LOCAL_BIN))"; \
 	exit 1; \
 fi
 endef
@@ -133,11 +133,9 @@ override_dh_auto_configure:
 	# Update hash to match the fixed themes tarball (required for file:// URLs)
 	sed -i '/\.iterm2_themes/,/}/ s|\.hash = "[^"]*"|.hash = "$(THEME_HASH)"|' build.zig.zon 2>/dev/null || true
 	sed -i '/"iterm2_themes"/,/\}/ s|"hash": "[^"]*"|"hash": "$(THEME_HASH)"|' build.zig.zon.json 2>/dev/null || true
-	# Ensure vendored themes are extracted for offline builds
-	mkdir -p "$(CURDIR)/zig-deps/p/$(THEME_HASH)"
-	if [ -z "$$(ls -A "$(CURDIR)/zig-deps/p/$(THEME_HASH)" 2>/dev/null)" ]; then \
-		tar -xzf ghostty-themes.tgz -C "$(CURDIR)/zig-deps/p/$(THEME_HASH)"; \
-	fi
+	# Zig 0.17: deps are vendored unpacked in zig-pkg/ (from `zig build --fetch=all`
+	# at source-generation time); the global-cache layout cannot be used with --system.
+	test -d zig-pkg/$(THEME_HASH) || (echo "ERROR: vendored zig-pkg/ missing or incomplete!" && exit 1)
 	# HarfBuzz compatibility: older header sets can lack HB_BUFFER_CLUSTER_LEVEL_GRAPHEMES
 	HARFBUZZ_CLUSTER_LEVEL_GRAPHEMES="c.HB_BUFFER_CLUSTER_LEVEL_GRAPHEMES"; \
 	if [ ! -d /usr/include/harfbuzz ] || ! grep -R -q "HB_BUFFER_CLUSTER_LEVEL_GRAPHEMES" /usr/include/harfbuzz 2>/dev/null; then \
@@ -158,7 +156,7 @@ override_dh_auto_configure:
 	test -f wayland-protocols.tar.gz || (echo "ERROR: wayland-protocols.tar.gz not found!" && exit 1)
 	test -f plasma_wayland_protocols.tar.gz || (echo "ERROR: plasma_wayland_protocols.tar.gz not found!" && exit 1)
 	sed -i "s#https://deps.files.ghostty.org/wayland-9cb3d7aa9dc995ffafdbdef7ab86a949d0fb0e7d.tar.gz#file://$(CURDIR)/wayland.tar.gz#g" build.zig.zon 2>/dev/null || true
-	sed -i "s#https://deps.files.ghostty.org/wayland-protocols-258d8f88f2c8c25a830c6316f87d23ce1a0f12d9.tar.gz#file://$(CURDIR)/wayland-protocols.tar.gz#g" build.zig.zon 2>/dev/null || true
+	sed -i "s#https://deps.files.ghostty.org/N-V-__8AAFdWDwA0ktbNUi9pFBHCRN4weXIgIfCrVjfGxqgA.tar.gz#file://$(CURDIR)/wayland-protocols.tar.gz#g" build.zig.zon 2>/dev/null || true
 	sed -i "s#https://deps.files.ghostty.org/plasma_wayland_protocols-12207e0851c12acdeee0991e893e0132fc87bb763969a585dc16ecca33e88334c566.tar.gz#file://$(CURDIR)/plasma_wayland_protocols.tar.gz#g" build.zig.zon 2>/dev/null || true
 	# Use system linker instead of LLD (fixes Debian libdcimgui.a/libfreetype.so bug, ziglang/zig#20476)
 	sed -i '/\.use_llvm = true,/a\ .use_lld = false,' src/build/GhosttyExe.zig

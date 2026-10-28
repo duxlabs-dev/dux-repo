@@ -1,0 +1,9 @@
+zig17 (0.17.0-1) unstable; urgency=medium
+
+  * Initial release of zig17 package for danklinux
+  * Binary repackaging of official Zig 0.17.0 release
+  * Required for Ghostty 1.4.0 (minimum_zig_version = 0.17.0)
+  * Installs to /usr/lib/zig-0.17.0 with /usr/bin/zig-0.17 symlink
+  * Can coexist with zig16 and other Zig versions
+
+ -- Avenge Media <AvengeMedia.US@gmail.com>  Wed, 28 Oct 2026 14:00:00 -0500

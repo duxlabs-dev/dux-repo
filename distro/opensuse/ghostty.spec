@@ -1,4 +1,4 @@
-%global zig_minimum_version 0.15.0
+%global zig_minimum_version 0.17.0
 %global ghostty_libdir /usr/lib
 %global ghostty_systemd_user_unitdir %{_userunitdir}
 
@@ -11,20 +11,21 @@ License:        MIT
 URL:            https://github.com/ghostty-org/ghostty
 Source0:        ghostty-%{version}.tar.xz
 
-BuildRequires:  zig15
+BuildRequires:  zig17
 BuildRequires:  curl
 BuildRequires:  blueprint-compiler
 BuildRequires:  fontconfig-devel
 BuildRequires:  freetype-devel
 BuildRequires:  glib2-devel
-BuildRequires:  gtk4-devel
-BuildRequires:  gtk4-layer-shell-devel
+BuildRequires:  gtk4-devel >= 4.18
+BuildRequires:  gtk4-layer-shell-devel >= 1.0.4
 BuildRequires:  harfbuzz-devel
-BuildRequires:  libadwaita-devel
+BuildRequires:  libadwaita-devel >= 1.7
 BuildRequires:  libpng-devel
 BuildRequires:  ncurses-devel
 BuildRequires:  oniguruma-devel
 BuildRequires:  pkg-config
+BuildRequires:  pkgconfig(egl)
 BuildRequires:  wayland-protocols-devel
 BuildRequires:  zlib-ng-devel
 BuildRequires:  libpixman-1-0-devel
@@ -55,13 +56,13 @@ THEMES_FILE="file://$PWD/ghostty-themes.tgz"
 if [ -f "$PWD/ghostty-themes.tgz" ]; then
     sed -i "s#https://deps.files.ghostty.org/ghostty-themes-release-[^\"]*\.tgz#${THEMES_FILE}#" build.zig.zon
     sed -i "s#https://github.com/mbadolato/iTerm2-Color-Schemes/releases/download/.\+/ghostty-themes.tgz#${THEMES_FILE}#" build.zig.zon
-    sed -i '/\.iterm2_themes/,/}/ s|\.hash = "[^"]\+"|.hash = "N-V-__8AABVbAwBwDRyZONfx553tvMW8_A2OKUoLzPUSRiLF"|' build.zig.zon
+    sed -i '/\.iterm2_themes/,/}/ s|\.hash = "[^"]\+"|.hash = "N-V-__8AAJ3vBQAq1fLMh5J8uWLkeDLS6WAdR2x5KcrmEyz6"|' build.zig.zon
 fi
 if [ -f "$PWD/wayland.tar.gz" ]; then
     sed -i "s#https://deps.files.ghostty.org/wayland-9cb3d7aa9dc995ffafdbdef7ab86a949d0fb0e7d.tar.gz#file://$PWD/wayland.tar.gz#" build.zig.zon
 fi
 if [ -f "$PWD/wayland-protocols.tar.gz" ]; then
-    sed -i "s#https://deps.files.ghostty.org/wayland-protocols-258d8f88f2c8c25a830c6316f87d23ce1a0f12d9.tar.gz#file://$PWD/wayland-protocols.tar.gz#" build.zig.zon
+    sed -i "s#https://deps.files.ghostty.org/N-V-__8AAFdWDwA0ktbNUi9pFBHCRN4weXIgIfCrVjfGxqgA.tar.gz#file://$PWD/wayland-protocols.tar.gz#" build.zig.zon
 fi
 if [ -f "$PWD/plasma_wayland_protocols.tar.gz" ]; then
     sed -i "s#https://deps.files.ghostty.org/plasma_wayland_protocols-12207e0851c12acdeee0991e893e0132fc87bb763969a585dc16ecca33e88334c566.tar.gz#file://$PWD/plasma_wayland_protocols.tar.gz#" build.zig.zon
@@ -81,14 +82,12 @@ find . -type f -path "*/pkg/harfbuzz/buffer.zig" -exec \
 find . -type f -path "*/pkg/harfbuzz/buffer.zig" -exec \
     sed -i "s/graphemes = c.HB_BUFFER_CLUSTER_LEVEL_GRAPHEMES/graphemes = ${HARFBUZZ_CLUSTER_LEVEL_GRAPHEMES}/" {} + || true
 
-ZIG_GLOBAL_CACHE_DIR=$PWD/zig-deps
-# Skip fetch-zig-cache when zig-deps pre-vendored (OBS source tarball has no network)
-if [ -d "$ZIG_GLOBAL_CACHE_DIR/p" ] && [ -n "$(ls -A "$ZIG_GLOBAL_CACHE_DIR/p" 2>/dev/null)" ]; then
-    echo "Using pre-vendored zig-deps from source package"
-elif [ -x ./nix/build-support/fetch-zig-cache.sh ]; then
-    ZIG_GLOBAL_CACHE_DIR=$ZIG_GLOBAL_CACHE_DIR ./nix/build-support/fetch-zig-cache.sh
-else
-    echo "WARNING: fetch-zig-cache.sh not found; proceeding with direct network access."
+# Dependencies are vendored unpacked in ./zig-pkg by `zig build --fetch=all` at
+# source-generation time (OBS has no network). Zig 0.17 keeps its global cache as
+# archives that --system cannot read, so fetch-zig-cache.sh is not used.
+if [ ! -d "$PWD/zig-pkg" ] || [ -z "$(ls -A "$PWD/zig-pkg" 2>/dev/null)" ]; then
+    echo "ERROR: vendored zig-pkg/ not found in source package"
+    exit 1
 fi
 
 %build
@@ -109,43 +108,23 @@ find . -type f -path "*/pkg/harfbuzz/buffer.zig" -exec \
     sed -i "s/graphemes = c.HB_BUFFER_CLUSTER_LEVEL_GRAPHEMES/graphemes = ${HARFBUZZ_CLUSTER_LEVEL_GRAPHEMES}/" {} + || true
 
 mkdir -p %{_builddir}/ghostty-buildroot
-if [ -d "$ZIG_GLOBAL_CACHE_DIR/p" ]; then
-    if [ -x "%{_bindir}/zig-0.15" ]; then
-        ZIG_BIN="%{_bindir}/zig-0.15"
-    elif [ -x "%{_bindir}/zig" ]; then
-        ZIG_BIN="%{_bindir}/zig"
-    else
-        echo "ERROR: zig compiler not found in %{_bindir}"
-        exit 1
-    fi
-    DESTDIR=%{_builddir}/ghostty-buildroot "$ZIG_BIN" build install \
-        --system "$ZIG_GLOBAL_CACHE_DIR/p" \
-        --summary all \
-        --prefix "%{_prefix}" \
-        -Dversion-string=%{version}-%{release} \
-        -Doptimize=ReleaseFast \
-        -Dcpu=baseline \
-        -Dpie=true \
-        -Demit-docs=false
+if [ -x "%{_bindir}/zig-0.17" ]; then
+    ZIG_BIN="%{_bindir}/zig-0.17"
+elif [ -x "%{_bindir}/zig" ]; then
+    ZIG_BIN="%{_bindir}/zig"
 else
-    echo "WARNING: Zig cache directory not found at $ZIG_GLOBAL_CACHE_DIR/p; building without --system."
-    if [ -x "%{_bindir}/zig-0.15" ]; then
-        ZIG_BIN="%{_bindir}/zig-0.15"
-    elif [ -x "%{_bindir}/zig" ]; then
-        ZIG_BIN="%{_bindir}/zig"
-    else
-        echo "ERROR: zig compiler not found in %{_bindir}"
-        exit 1
-    fi
-    DESTDIR=%{_builddir}/ghostty-buildroot "$ZIG_BIN" build install \
-        --summary all \
-        --prefix "%{_prefix}" \
-        -Dversion-string=%{version}-%{release} \
-        -Doptimize=ReleaseFast \
-        -Dcpu=baseline \
-        -Dpie=true \
-        -Demit-docs=false
+    echo "ERROR: zig compiler not found in %{_bindir}"
+    exit 1
 fi
+DESTDIR=%{_builddir}/ghostty-buildroot "$ZIG_BIN" build install \
+    --system "$PWD/zig-pkg" \
+    --summary all \
+    --prefix "%{_prefix}" \
+    -Dversion-string=%{version}-%{release} \
+    -Doptimize=ReleaseFast \
+    -Dcpu=baseline \
+    -Dpie=true \
+    -Demit-docs=false
 
 %install
 # Copy pre-built files from build phase
@@ -192,16 +171,6 @@ do
     fi
 done
 rm -f %{buildroot}%{_libdir}/pkgconfig/libghostty-vt.pc
-
-# Build include dir list for ghostty-devel to avoid "directories not owned" (es_BO/ko_KR-style issues).
-INCLUDE_DIRS_FILE="%{_builddir}/ghostty-devel.include-dirs"
-: > "$INCLUDE_DIRS_FILE"
-if [ -d "%{buildroot}%{_includedir}/ghostty" ]; then
-    find "%{buildroot}%{_includedir}/ghostty" -type d -print \
-        | sed "s#^%{buildroot}##" \
-        | while read -r d; do echo "%%dir $d"; done \
-        >> "$INCLUDE_DIRS_FILE"
-fi
 
 # Build locale file list from actual outputs to avoid packaging errors on missing dirs.
 # Use -mindepth 1 so parent locale dirs (es_BO, ko_KR, etc.) are owned
@@ -305,11 +274,9 @@ Provides:       pkgconfig(libghostty-vt) = 0.1.0
 %description devel
 This package contains the headers and pkg-config metadata for the Ghostty VT library.
 
-%files devel -f %{_builddir}/ghostty-devel.include-dirs
-%{_includedir}/ghostty/vt.h
-%{_includedir}/ghostty/vt/*.h
-%{_includedir}/ghostty/vt/key/encoder.h
-%{_includedir}/ghostty/vt/key/event.h
+%files devel
+# 1.4 adds more vt headers (vt/mouse/*.h), so own the whole tree instead of listing them
+%{_includedir}/ghostty/
 %{ghostty_libdir}/libghostty-vt.so
 %{ghostty_libdir}/libghostty-vt.so.0
 %{ghostty_libdir}/libghostty-vt.so.0.1.0

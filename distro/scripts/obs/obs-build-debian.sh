@@ -436,7 +436,6 @@ if [[ "$PACKAGE" == "ghostty" ]]; then
     cd "$SOURCE_DIR"
 
     GHOSTTY_CACHE_DIR="${GHOSTTY_VENDOR_CACHE_DIR:-}"
-    SKIP_ZIG_FETCH=false
 
     if [[ -n "$GHOSTTY_CACHE_DIR" ]]; then
         mkdir -p "$GHOSTTY_CACHE_DIR"
@@ -453,15 +452,15 @@ if [[ "$PACKAGE" == "ghostty" ]]; then
             fi
         done
 
-        if [[ -d "$GHOSTTY_CACHE_DIR/zig-deps/p" ]]; then
-            log_info "Reusing cached zig-deps from $GHOSTTY_CACHE_DIR"
-            rm -rf "$SOURCE_DIR/zig-deps"
-            cp -a "$GHOSTTY_CACHE_DIR/zig-deps" "$SOURCE_DIR/"
+        if [[ -d "$GHOSTTY_CACHE_DIR/zig-pkg" ]]; then
+            log_info "Seeding zig-pkg from $GHOSTTY_CACHE_DIR (fetch still runs)"
+            rm -rf "$SOURCE_DIR/zig-pkg"
+            cp -a "$GHOSTTY_CACHE_DIR/zig-pkg" "$SOURCE_DIR/"
         fi
     fi
 
     # Download ghostty-themes.tgz from Ghostty's vendored dependency host
-    THEME_URL="https://deps.files.ghostty.org/ghostty-themes-release-20260216-151611-fc73ce3.tgz"
+    THEME_URL="https://deps.files.ghostty.org/ghostty-themes-release-20261019-151001-86a776d.tgz"
     log_info "Downloading ghostty-themes.tgz..."
     if [[ -f "ghostty-themes.tgz" ]]; then
         log_success "Using cached ghostty-themes.tgz"
@@ -478,7 +477,7 @@ if [[ "$PACKAGE" == "ghostty" ]]; then
     
     declare -A WAYLAND_DEPS=(
         ["wayland"]="https://deps.files.ghostty.org/wayland-9cb3d7aa9dc995ffafdbdef7ab86a949d0fb0e7d.tar.gz"
-        ["wayland-protocols"]="https://deps.files.ghostty.org/wayland-protocols-258d8f88f2c8c25a830c6316f87d23ce1a0f12d9.tar.gz"
+        ["wayland-protocols"]="https://deps.files.ghostty.org/N-V-__8AAFdWDwA0ktbNUi9pFBHCRN4weXIgIfCrVjfGxqgA.tar.gz"
         ["plasma_wayland_protocols"]="https://deps.files.ghostty.org/plasma_wayland_protocols-12207e0851c12acdeee0991e893e0132fc87bb763969a585dc16ecca33e88334c566.tar.gz"
     )
     
@@ -509,29 +508,39 @@ if [[ "$PACKAGE" == "ghostty" ]]; then
     THEMES_FILE="file://$SOURCE_DIR/ghostty-themes.tgz"
     sed -i "s|https://deps.files.ghostty.org/ghostty-themes-release-[^\"]\+\.tgz|${THEMES_FILE}|" "$SOURCE_DIR/build.zig.zon"
     sed -i "s|https://github.com/mbadolato/iTerm2-Color-Schemes/releases/download/.\+/ghostty-themes.tgz|${THEMES_FILE}|" "$SOURCE_DIR/build.zig.zon"
-    sed -i '/\.iterm2_themes/,/}/ s|\.hash = "[^"]\+"|.hash = "N-V-__8AABVbAwBwDRyZONfx553tvMW8_A2OKUoLzPUSRiLF"|' "$SOURCE_DIR/build.zig.zon"
+    sed -i '/\.iterm2_themes/,/}/ s|\.hash = "[^"]\+"|.hash = "N-V-__8AAJ3vBQAq1fLMh5J8uWLkeDLS6WAdR2x5KcrmEyz6"|' "$SOURCE_DIR/build.zig.zon"
     sed -i "s|https://deps.files.ghostty.org/wayland-9cb3d7aa9dc995ffafdbdef7ab86a949d0fb0e7d.tar.gz|file://$SOURCE_DIR/wayland.tar.gz|" "$SOURCE_DIR/build.zig.zon"
-    sed -i "s|https://deps.files.ghostty.org/wayland-protocols-258d8f88f2c8c25a830c6316f87d23ce1a0f12d9.tar.gz|file://$SOURCE_DIR/wayland-protocols.tar.gz|" "$SOURCE_DIR/build.zig.zon"
+    sed -i "s|https://deps.files.ghostty.org/N-V-__8AAFdWDwA0ktbNUi9pFBHCRN4weXIgIfCrVjfGxqgA.tar.gz|file://$SOURCE_DIR/wayland-protocols.tar.gz|" "$SOURCE_DIR/build.zig.zon"
     sed -i "s|https://deps.files.ghostty.org/plasma_wayland_protocols-12207e0851c12acdeee0991e893e0132fc87bb763969a585dc16ecca33e88334c566.tar.gz|file://$SOURCE_DIR/plasma_wayland_protocols.tar.gz|" "$SOURCE_DIR/build.zig.zon"
 
-    # Vendor Zig dependencies by running a fetch-only build
+    # Vendor Zig dependencies into ./zig-pkg and ship it in the source package.
+    # Zig 0.17 keeps its global cache as archives that `--system` cannot read
+    # (it panics), so debian/rules and the spec build with `--system zig-pkg`.
     log_info "Fetching Zig dependencies..."
-    mkdir -p zig-deps/p
-    export ZIG_GLOBAL_CACHE_DIR="$SOURCE_DIR/zig-deps"
+    ZIG_FETCH_CACHE=$(mktemp -d /tmp/ghostty-zig-cache-XXXXXX)
+    export ZIG_GLOBAL_CACHE_DIR="$ZIG_FETCH_CACHE"
 
-    # Use zig to fetch dependencies (Ghostty currently requires Zig 0.15.2)
+    # Use the Zig minor that Ghostty pins in build.zig.zon (Ghostty 1.4.0: 0.17.0).
+    # Zig minors are not source compatible, so only accept a matching major.minor.
+    GHOSTTY_ZIG_VERSION=$(sed -n 's/^[[:space:]]*\.minimum_zig_version = "\([0-9.]*\)".*/\1/p' "$SOURCE_DIR/build.zig.zon" | head -1)
+    GHOSTTY_ZIG_VERSION="${GHOSTTY_ZIG_VERSION:-0.17.0}"
+    GHOSTTY_ZIG_MINOR="${GHOSTTY_ZIG_VERSION%.*}"
+    ZIG_HOST_ARCH=$(uname -m)
+    ZIG_LOCAL_DIR="/tmp/zig-${ZIG_HOST_ARCH}-linux-${GHOSTTY_ZIG_VERSION}"
+    log_info "Ghostty requires Zig ${GHOSTTY_ZIG_VERSION}"
+
     ZIG_BIN=""
-    for candidate in zig zig-0.15 zig15 /usr/bin/zig /usr/bin/zig-0.15 /tmp/zig-linux-x86_64-0.15.2/zig; do
+    for candidate in "zig-${GHOSTTY_ZIG_MINOR}" zig "/usr/bin/zig-${GHOSTTY_ZIG_MINOR}" "$ZIG_LOCAL_DIR/zig"; do
         local_bin=""
         if [[ "$candidate" == /* ]]; then
             [ -x "$candidate" ] && local_bin="$candidate"
         else
-            local_bin=$(command -v "$candidate" 2>/dev/null)
+            local_bin=$(command -v "$candidate" 2>/dev/null || true)
             [ -n "$local_bin" ] && [ -x "$local_bin" ] || local_bin=""
         fi
         if [ -n "$local_bin" ]; then
             ver=$("$local_bin" version 2>/dev/null | head -1)
-            if [[ "$ver" =~ 0\.(1[5-9]|[2-9][0-9]) ]]; then
+            if [[ "$ver" == "${GHOSTTY_ZIG_MINOR}."* ]]; then
                 ZIG_BIN="$local_bin"
                 log_info "Using $ZIG_BIN (version $ver)"
                 break
@@ -540,40 +549,43 @@ if [[ "$PACKAGE" == "ghostty" ]]; then
     done
 
     if [ -z "$ZIG_BIN" ]; then
-        log_info "Zig 0.15+ not found - downloading to /tmp..."
-        cd /tmp
-        ZIG_TAR="zig-linux-x86_64-0.15.2.tar.xz"
-        if ! curl -L -f -o "$ZIG_TAR" "https://ziglang.org/download/0.15.2/$ZIG_TAR" 2>/dev/null; then
-            log_error "Zig 0.15.2 not available from ziglang.org (404). Install Zig 0.15+ with: sudo dnf install zig"
+        ZIG_TAR="zig-${ZIG_HOST_ARCH}-linux-${GHOSTTY_ZIG_VERSION}.tar.xz"
+        log_info "Zig ${GHOSTTY_ZIG_MINOR} not found - downloading ${ZIG_TAR} to /tmp..."
+        ZIG_DL_DIR=$(mktemp -d /tmp/ghostty-zig-dl-XXXXXX)
+        if ! curl -L -f -o "$ZIG_DL_DIR/$ZIG_TAR" "https://ziglang.org/download/${GHOSTTY_ZIG_VERSION}/${ZIG_TAR}" 2>/dev/null; then
+            rm -rf "$ZIG_DL_DIR"
+            log_error "Zig ${GHOSTTY_ZIG_VERSION} not available from ziglang.org. Install zig ${GHOSTTY_ZIG_MINOR} (e.g. the zig${GHOSTTY_ZIG_MINOR#0.} OBS package)"
             exit $ERR_BUILD_FAILURE
         fi
-        if [ ! -s "$ZIG_TAR" ] || [ "$(stat -c%s "$ZIG_TAR" 2>/dev/null)" -lt 1000000 ]; then
-            rm -f "$ZIG_TAR"
-            log_error "Zig download failed (got HTML/error page). Install Zig 0.15+ with: sudo dnf install zig"
+        if [ ! -s "$ZIG_DL_DIR/$ZIG_TAR" ] || [ "$(stat -c%s "$ZIG_DL_DIR/$ZIG_TAR" 2>/dev/null)" -lt 1000000 ]; then
+            rm -rf "$ZIG_DL_DIR"
+            log_error "Zig download failed (got HTML/error page)"
             exit $ERR_BUILD_FAILURE
         fi
-        if ! tar -xJf "$ZIG_TAR"; then
-            rm -f "$ZIG_TAR"
-            log_error "Failed to extract Zig 0.15.2"
+        if ! tar -xJf "$ZIG_DL_DIR/$ZIG_TAR" -C /tmp; then
+            rm -rf "$ZIG_DL_DIR"
+            log_error "Failed to extract Zig ${GHOSTTY_ZIG_VERSION}"
             exit $ERR_BUILD_FAILURE
         fi
-        ZIG_BIN="/tmp/zig-linux-x86_64-0.15.2/zig"
-        cd "$SOURCE_DIR"
-        log_success "Downloaded and extracted Zig 0.15.2 to /tmp"
+        rm -rf "$ZIG_DL_DIR"
+        ZIG_BIN="$ZIG_LOCAL_DIR/zig"
+        log_success "Downloaded and extracted Zig ${GHOSTTY_ZIG_VERSION} to $ZIG_LOCAL_DIR"
     fi
 
-    if [[ "$SKIP_ZIG_FETCH" == "true" ]] && [[ -d "$SOURCE_DIR/zig-deps/p" ]] && [[ -n "$(ls -A "$SOURCE_DIR/zig-deps/p" 2>/dev/null)" ]]; then
-        log_info "Skipping zig build (cached zig-deps present with content)"
-    else
-        log_info "Using $ZIG_BIN to build and cache ALL dependencies..."
-        # Run a full build to ensure ALL dependencies (including nested pkg/* deps) are fetched
-        $ZIG_BIN build -Doptimize=ReleaseFast 2>&1 | grep -v "^info:" || true
+    # Fetch only (no compile): pulls every dependency, lazy ones included, into ./zig-pkg
+    log_info "Using $ZIG_BIN build --fetch=all to vendor ALL dependencies into zig-pkg/..."
+    if ! "$ZIG_BIN" build --fetch=all; then
+        rm -rf "$ZIG_FETCH_CACHE"
+        log_error "zig build --fetch=all failed"
+        exit $ERR_BUILD_FAILURE
     fi
-    log_success "Vendored Zig dependencies: $(du -sh zig-deps | cut -f1)"
+    rm -rf "$ZIG_FETCH_CACHE"
+    unset ZIG_GLOBAL_CACHE_DIR
+    log_success "Vendored Zig dependencies: $(du -sh zig-pkg | cut -f1) ($(ls zig-pkg | wc -l) packages)"
 
     if [[ -n "$GHOSTTY_CACHE_DIR" ]]; then
-        rm -rf "$GHOSTTY_CACHE_DIR/zig-deps"
-        cp -a "$SOURCE_DIR/zig-deps" "$GHOSTTY_CACHE_DIR/"
+        rm -rf "$GHOSTTY_CACHE_DIR/zig-pkg" "$GHOSTTY_CACHE_DIR/zig-deps"
+        cp -a "$SOURCE_DIR/zig-pkg" "$GHOSTTY_CACHE_DIR/"
         cp -a "$SOURCE_DIR/ghostty-themes.tgz" "$GHOSTTY_CACHE_DIR/" 2>/dev/null || true
         cp -a "$SOURCE_DIR/wayland.tar.gz" "$GHOSTTY_CACHE_DIR/" 2>/dev/null || true
         cp -a "$SOURCE_DIR/wayland-protocols.tar.gz" "$GHOSTTY_CACHE_DIR/" 2>/dev/null || true
@@ -593,18 +605,25 @@ if [[ "$PACKAGE" == "ghostty" ]]; then
         fi
     done
 
-    if [[ ! -d "$SOURCE_DIR/zig-deps/p" ]] || [[ -z "$(ls -A "$SOURCE_DIR/zig-deps/p" 2>/dev/null)" ]]; then
-        log_error "zig-deps is empty after vendoring"
+    if [[ ! -d "$SOURCE_DIR/zig-pkg" ]] || [[ -z "$(ls -A "$SOURCE_DIR/zig-pkg" 2>/dev/null)" ]]; then
+        log_error "zig-pkg is empty after vendoring"
         exit $ERR_BUILD_FAILURE
     fi
+    # Every hash pinned in build.zig.zon must be vendored, or the offline OBS build fails
+    while read -r dep_hash; do
+        if [[ ! -d "$SOURCE_DIR/zig-pkg/$dep_hash" ]]; then
+            log_error "zig-pkg is missing dependency $dep_hash"
+            exit $ERR_BUILD_FAILURE
+        fi
+    done < <(sed -n 's/^[[:space:]]*\.hash = "\([^"]*\)".*/\1/p' "$SOURCE_DIR/build.zig.zon")
 
     # Clean up build artifacts before packaging
     log_info "Cleaning up build artifacts..."
-    rm -rf "$SOURCE_DIR/.zig-cache" "$SOURCE_DIR/zig-out"
+    rm -rf "$SOURCE_DIR/.zig-cache" "$SOURCE_DIR/zig-out" "$SOURCE_DIR/zig-deps"
 
-    # Do NOT bundle Zig: copying zig-{arch}-linux-0.15.2 (~thousands of files) exhausts
+    # Do NOT bundle Zig: copying zig-{arch}-linux-0.17.0 (~thousands of files) exhausts
     # disk quota on constrained /tmp. Debian rules already patch .use_lld=false and
-    # pass -fno-lld -fuse-ld=bfd; system zig15/zig works for OBS builds.
+    # pass -fno-lld -fuse-ld=bfd; system zig17 (/usr/bin/zig-0.17) works for OBS builds.
 
     cd "$WORK_DIR"
 fi

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Zig packages (zig15, zig16) are **fundamentally different** from other packages in the danklinux repository:
+The Zig packages (zig16, zig17) are **fundamentally different** from other packages in the danklinux repository:
 
 - **Other packages**: Clone source code, compile, vendor dependencies
 - **Zig packages**: Download pre-built official binaries, repackage them
@@ -21,8 +21,8 @@ This approach is necessary because:
 └─────────────────────────────────────────────────────────────┘
 
 1. Download Official Binaries (ziglang.org)
-   ├─ zig-x86_64-linux-0.16.0.tar.xz (50MB)
-   └─ zig-aarch64-linux-0.16.0.tar.xz (50MB)
+   ├─ zig-x86_64-linux-0.17.0.tar.xz (50MB)
+   └─ zig-aarch64-linux-0.17.0.tar.xz (50MB)
 
 2. Create Distribution-Specific Packages
    ├─ Debian (3.0 quilt format)
@@ -52,24 +52,24 @@ This approach is necessary because:
 **How it works**:
 ```bash
 # 1. Download binaries
-curl ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
-curl ziglang.org/download/0.16.0/zig-aarch64-linux-0.16.0.tar.xz
+curl ziglang.org/download/0.17.0/zig-x86_64-linux-0.17.0.tar.xz
+curl ziglang.org/download/0.17.0/zig-aarch64-linux-0.17.0.tar.xz
 
 # 2. Create orig.tar.xz (upstream source)
-tar -cJf zig16_0.16.0.orig.tar.xz \
-    zig16-0.16.0/
-    ├─ zig-x86_64-linux-0.16.0.tar.xz
-    └─ zig-aarch64-linux-0.16.0.tar.xz
+tar -cJf zig17_0.17.0.orig.tar.xz \
+    zig17-0.17.0/
+    ├─ zig-x86_64-linux-0.17.0.tar.xz
+    └─ zig-aarch64-linux-0.17.0.tar.xz
 
 # 3. Add debian/ directory and run dpkg-source
-cd zig16-0.16.0/
-cp -r distro/debian/zig/zig16/debian .
+cd zig17-0.17.0/
+cp -r distro/debian/zig/zig17/debian .
 dpkg-source -b .
 
 # 4. Output files ready for upload
-zig16_0.16.0.orig.tar.xz       # Both arch binaries
-zig16_0.16.0-1.debian.tar.xz   # Packaging files
-zig16_0.16.0-1.dsc             # Checksums (auto-generated)
+zig17_0.17.0.orig.tar.xz       # Both arch binaries
+zig17_0.17.0-1.debian.tar.xz   # Packaging files
+zig17_0.17.0-1.dsc             # Checksums (auto-generated)
 ```
 
 **Key concepts**:
@@ -86,22 +86,22 @@ zig16_0.16.0-1.dsc             # Checksums (auto-generated)
 **How it works**:
 ```bash
 # 1. Download binaries
-curl ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
-curl ziglang.org/download/0.16.0/zig-aarch64-linux-0.16.0.tar.xz
+curl ziglang.org/download/0.17.0/zig-x86_64-linux-0.17.0.tar.xz
+curl ziglang.org/download/0.17.0/zig-aarch64-linux-0.17.0.tar.xz
 
 # 2. Create simple tarball at root level
-tar -czf zig16-0.16.0.tar.gz \
-    zig-x86_64-linux-0.16.0.tar.xz \
-    zig-aarch64-linux-0.16.0.tar.xz
+tar -czf zig17-0.17.0.tar.gz \
+    zig-x86_64-linux-0.17.0.tar.xz \
+    zig-aarch64-linux-0.17.0.tar.xz
 
 # 3. Copy .spec and -rpmlintrc files
-cp distro/opensuse/zig/zig16.spec .
-cp distro/opensuse/zig/zig16-rpmlintrc .
+cp distro/opensuse/zig/zig17.spec .
+cp distro/opensuse/zig/zig17-rpmlintrc .
 
 # 4. Output files ready for upload
-zig16-0.16.0.tar.gz    # Both arch binaries at root
-zig16.spec             # Build instructions
-zig16-rpmlintrc        # Suppress linter warnings
+zig17-0.17.0.tar.gz    # Both arch binaries at root
+zig17.spec             # Build instructions
+zig17-rpmlintrc        # Suppress linter warnings
 ```
 
 **Key concepts**:
@@ -148,29 +148,29 @@ The zig packages are intentionally **separate** from the main automation:
 1. **Different source**: ziglang.org instead of GitHub
 2. **Infrequent updates**: Zig releases slowly (months between versions)
 3. **Manual verification**: Want to test each Zig release before packaging
-4. **Dependency for other packages**: Ghostty depends on zig15 today, and will
-   move to zig16 for Ghostty 1.3.2 (minimum_zig_version = 0.16.0)
-5. **Multiple versions**: Ghostty 1.3.1 needs zig15 (0.15.2); Ghostty 1.3.2+
-   needs zig16 (0.16.0)
+4. **Dependency for other packages**: Ghostty 1.4.0+ depends on zig17
+   (minimum_zig_version = 0.17.0)
+5. **Multiple versions**: each Zig minor gets its own package (zig16, zig17)
+   so they can coexist. zig15 was retired with Ghostty 1.4.0
 
 ## File Organization
 
 ```
 distro/
 ├─ debian/zig/
-│  ├─ zig15/debian/
+│  ├─ zig16/debian/
 │  │  ├─ source/format      # "3.0 (quilt)"
 │  │  ├─ control            # Package metadata
 │  │  ├─ rules              # Build instructions
 │  │  ├─ changelog          # Version history
 │  │  └─ copyright          # License info
-│  └─ zig16/debian/         # Same structure
+│  └─ zig17/debian/         # Same structure
 │
 ├─ opensuse/zig/
-│  ├─ zig15.spec            # RPM build instructions
-│  ├─ zig15-rpmlintrc       # Suppress false positives
-│  ├─ zig16.spec
-│  └─ zig16-rpmlintrc
+│  ├─ zig16.spec            # RPM build instructions
+│  ├─ zig16-rpmlintrc       # Suppress false positives
+│  ├─ zig17.spec
+│  └─ zig17-rpmlintrc
 │
 └─ scripts/obs/zig/
    ├─ build-zig-debian.sh   # Build Debian packages
@@ -186,12 +186,12 @@ distro/
 cd distro/scripts/obs/zig
 
 # Build Debian packages
-./build-zig-debian.sh zig15 /tmp/zig15-debian
 ./build-zig-debian.sh zig16 /tmp/zig16-debian
+./build-zig-debian.sh zig17 /tmp/zig17-debian
 
 # Build OpenSUSE packages
-./build-zig-opensuse.sh zig15 /tmp/zig15-opensuse
 ./build-zig-opensuse.sh zig16 /tmp/zig16-opensuse
+./build-zig-opensuse.sh zig17 /tmp/zig17-opensuse
 ```
 
 ### Uploading to OBS
@@ -201,52 +201,52 @@ cd distro/scripts/obs/zig
 cd distro/scripts/obs
 
 # Copy both Debian and OpenSUSE files into one directory
-mkdir /tmp/zig16-complete
-cp /tmp/zig16-debian/* /tmp/zig16-complete/
-cp /tmp/zig16-opensuse/* /tmp/zig16-complete/
+mkdir /tmp/zig17-complete
+cp /tmp/zig17-debian/* /tmp/zig17-complete/
+cp /tmp/zig17-opensuse/* /tmp/zig17-complete/
 
 # Upload with --distro=both
-./obs-upload.sh --distro=both zig16 /tmp/zig16-complete
+./obs-upload.sh --distro=both zig17 /tmp/zig17-complete
 ```
 
 **Option 2**: Upload separately (not recommended - files get removed)
 ```bash
 # Don't do this - uploading one distro removes the other's files!
-./obs-upload.sh --distro=debian zig16 /tmp/zig16-debian
-./obs-upload.sh --distro=opensuse zig16 /tmp/zig16-opensuse
+./obs-upload.sh --distro=debian zig17 /tmp/zig17-debian
+./obs-upload.sh --distro=opensuse zig17 /tmp/zig17-opensuse
 ```
 
 ### Checking Build Status
 
 ```bash
 # Check all builds
-osc results home:AvengeMedia:danklinux zig15
 osc results home:AvengeMedia:danklinux zig16
+osc results home:AvengeMedia:danklinux zig17
 
 # Check specific build log
-osc buildlog home:AvengeMedia:danklinux zig16 Debian_Unstable x86_64
-osc buildlog home:AvengeMedia:danklinux zig16 openSUSE_Tumbleweed x86_64
+osc buildlog home:AvengeMedia:danklinux zig17 Debian_Unstable x86_64
+osc buildlog home:AvengeMedia:danklinux zig17 openSUSE_Tumbleweed x86_64
 ```
 
 ## Updating to New Zig Versions
 
 When a new Zig version is released:
 
-### For Minor Updates (e.g., 0.15.0 → 0.15.1)
+### For Minor Updates (e.g., 0.17.0 → 0.17.1)
 ```bash
 # 1. Update version in scripts (build-zig-debian.sh, build-zig-opensuse.sh)
-ZIG_VERSION="0.15.1"
+zig17) ZIG_VERSION="0.17.1" ;;
 
 # 2. Update distro packaging
-# - debian/zig/zig15/debian/changelog
-# - opensuse/zig/zig15.spec changelog
+# - debian/zig/zig17/debian/changelog + rules (ZIG_VERSION, install paths)
+# - opensuse/zig/zig17.spec + zig17-rpmlintrc
 
 # 3. Rebuild and test locally
-./build-zig-debian.sh zig15 /tmp/test
-tar -tf /tmp/test/zig15_0.15.1.orig.tar.xz  # Verify structure
+./build-zig-debian.sh zig17 /tmp/test
+tar -tf /tmp/test/zig17_0.17.1.orig.tar.xz  # Verify structure
 
 # 4. Upload to OBS
-./obs-upload.sh --distro=both zig15 /tmp/test
+./obs-upload.sh --distro=both zig17 /tmp/test
 ```
 
 ### For Major Updates (e.g., 0.18.0)
@@ -255,7 +255,7 @@ tar -tf /tmp/test/zig15_0.15.1.orig.tar.xz  # Verify structure
 mkdir -p distro/debian/zig/zig18/debian
 mkdir -p distro/opensuse/zig/
 
-# 2. Copy and modify from zig15/zig16
+# 2. Copy and modify from zig16/zig17
 # - Update version numbers
 # - Update package names (zig18)
 # - Update install paths (/usr/lib/zig-0.18.0)
@@ -286,7 +286,7 @@ override_dh_auto_clean:
 
 **Solution**: rpmlintrc file filters these:
 ```
-addFilter("zig16.* devel-file-in-non-devel-package .*/zig-0.16.0/lib/")
+addFilter("zig17.* devel-file-in-non-devel-package .*/zig-0.17.0/lib/")
 ```
 
 ### .dsc checksum mismatches
@@ -298,21 +298,21 @@ addFilter("zig16.* devel-file-in-non-devel-package .*/zig-0.16.0/lib/")
 
 ## Integration with Ghostty
 
-Ghostty currently uses the zig15 package instead of downloading Zig:
+Ghostty currently uses the zig17 package instead of downloading Zig:
 
 ### Debian
 ```debian
-Build-Depends: zig15
+Build-Depends: zig17
 ```
 
 ### OpenSUSE
 ```spec
-BuildRequires: zig15
+BuildRequires: zig17
 ```
 
-Ghostty 1.3.1 requires `minimum_zig_version = 0.15.2`. The upcoming Ghostty
-1.3.2 requires `minimum_zig_version = 0.16.0`, at which point the Ghostty
-packaging should switch to `zig16` and use `/usr/bin/zig-0.16`.
+Ghostty 1.4.0 requires `minimum_zig_version = 0.17.0`, so the Ghostty
+packaging uses `zig17` and `/usr/bin/zig-0.17`. zig17 must be published on OBS
+before Ghostty 1.4.0 is uploaded, or Ghostty sits in `unresolvable`.
 
 This removes the need for wget/curl in Ghostty builds and ensures consistent Zig versions.
 

@@ -300,6 +300,15 @@ if [[ "$UPLOAD_DEBIAN" == "true" ]]; then
     # Copy .dsc, .tar.*, .debian.tar.*, _service
     find "$ARTIFACTS_DIR" -maxdepth 1 -type f \( -name "*.dsc" -o -name "*.tar.*" -o -name "*.debian.tar.*" -o -name "_service" \) -exec cp -v {} . \;
 
+    # OBS rebuilds on every dependency change. Without the OBS release in the
+    # version each rebuild reuses the same .deb filename, mirrors keep serving
+    # the stale file, and apt fails with a size mismatch until they resync.
+    # OBS-DCH-RELEASE makes OBS append "+<release>" to the built version.
+    for dsc in ./*.dsc; do
+        [[ -f "$dsc" ]] || continue
+        grep -q '^OBS-DCH-RELEASE:' "$dsc" || sed -i '/^Source:/a OBS-DCH-RELEASE: 1' "$dsc"
+    done
+
     log_success "Debian artifacts copied"
 fi
 

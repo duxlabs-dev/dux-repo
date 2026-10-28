@@ -13,9 +13,9 @@
 #   2. Creates orig.tar.xz containing BOTH architecture binaries
 #   3. Adds debian/ packaging directory
 #   4. Runs dpkg-source -b to generate:
-#      - zig16_0.16.0.orig.tar.xz (upstream source with binaries)
-#      - zig16_0.16.0-1.debian.tar.xz (Debian packaging files)
-#      - zig16_0.16.0-1.dsc (source package descriptor with checksums)
+#      - zig17_0.17.0.orig.tar.xz (upstream source with binaries)
+#      - zig17_0.17.0-1.debian.tar.xz (Debian packaging files)
+#      - zig17_0.17.0-1.dsc (source package descriptor with checksums)
 #
 # WHY THIS APPROACH:
 #   - No network access during OBS builds (must include binaries)
@@ -24,7 +24,7 @@
 #   - dpkg-source auto-generates correct checksums in .dsc
 #
 # USAGE:
-#   ./build-zig-debian.sh zig16 /tmp/output
+#   ./build-zig-debian.sh zig17 /tmp/output
 #
 # ==============================================================================
 
@@ -38,7 +38,7 @@ init_common
 
 # Check arguments
 if [[ $# -lt 1 ]]; then
-    echo "Usage: $0 <zig15|zig16> [output_dir]"
+    echo "Usage: $0 <zig16|zig17> [output_dir]"
     exit 1
 fi
 
@@ -46,27 +46,24 @@ PACKAGE="$1"
 OUTPUT_DIR="${2:-/tmp/zig-build}"
 
 # Validate package
-if [[ "$PACKAGE" != "zig15" && "$PACKAGE" != "zig16" ]]; then
-    log_error "Package must be zig15 or zig16"
-    exit 1
-fi
+case "$PACKAGE" in
+    zig16|zig17) ;;
+    *)
+        log_error "Package must be zig16 or zig17"
+        exit 1
+        ;;
+esac
 
 # Version configuration
-if [[ "$PACKAGE" == "zig15" ]]; then
-    ZIG_VERSION="0.15.2"
-    DEBIAN_VERSION="0.15.2-1"
-    ZIG_X86_64_TARBALL="zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
-    ZIG_AARCH64_TARBALL="zig-aarch64-linux-${ZIG_VERSION}.tar.xz"
-    ZIG_X86_64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_X86_64_TARBALL}"
-    ZIG_AARCH64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_AARCH64_TARBALL}"
-else
-    ZIG_VERSION="0.16.0"
-    DEBIAN_VERSION="0.16.0-1"
-    ZIG_X86_64_TARBALL="zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
-    ZIG_AARCH64_TARBALL="zig-aarch64-linux-${ZIG_VERSION}.tar.xz"
-    ZIG_X86_64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_X86_64_TARBALL}"
-    ZIG_AARCH64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_AARCH64_TARBALL}"
-fi
+case "$PACKAGE" in
+    zig16) ZIG_VERSION="0.16.0" ;;
+    zig17) ZIG_VERSION="0.17.0" ;;
+esac
+DEBIAN_VERSION="${ZIG_VERSION}-1"
+ZIG_X86_64_TARBALL="zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
+ZIG_AARCH64_TARBALL="zig-aarch64-linux-${ZIG_VERSION}.tar.xz"
+ZIG_X86_64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_X86_64_TARBALL}"
+ZIG_AARCH64_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_AARCH64_TARBALL}"
 
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 DEBIAN_SRC_DIR="$REPO_ROOT/distro/debian/zig/$PACKAGE"
