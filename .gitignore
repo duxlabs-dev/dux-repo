@@ -19,6 +19,17 @@ distro/debian/**/*.dsc
 distro/debian/**/*.changes
 distro/debian/**/*.buildinfo
 distro/debian/**/*.build
+**/debian/files
+**/debian/*.substvars
+**/debian/.debhelper/
+**/debian/debhelper-build-stamp
+debian/tmp-home/
+
+# Local build caches (ccache, zig)
+.cache/
+.zig-cache/
+zig-pkg/
+zig-deps/
 
 # RPM build artifacts
 distro/fedora/**/*.src.rpm
