@@ -12,7 +12,7 @@
 
 Name:           ghostty
 Version:        1.4.0
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Fast, feature-rich, and cross-platform terminal emulator that uses platform-native UI and GPU acceleration
 
 License:        MIT
@@ -47,12 +47,37 @@ Requires: fontconfig
 Requires: freetype
 Requires: glib2
 Requires: gtk4 >= 4.18
+# 1.4 no longer disables the quick terminal on old layer-shell, which can crash
+Requires: gtk4-layer-shell >= 1.0.4
 Requires: harfbuzz
 Requires: libadwaita >= 1.7
 Requires: libpng
 Requires: oniguruma
 Requires: pixman
 Requires: zlib-ng
+
+# terra splits these out and pins an exact ghostty version-release in each;
+# we ship all of those files here, so obsolete the split names on upgrade.
+Provides:       ghostty-vim = %{version}-%{release}
+Obsoletes:      ghostty-vim < %{version}-%{release}
+Provides:       ghostty-neovim = %{version}-%{release}
+Obsoletes:      ghostty-neovim < %{version}-%{release}
+Provides:       ghostty-nautilus = %{version}-%{release}
+Obsoletes:      ghostty-nautilus < %{version}-%{release}
+Provides:       ghostty-kio = %{version}-%{release}
+Obsoletes:      ghostty-kio < %{version}-%{release}
+Provides:       ghostty-bat-syntax = %{version}-%{release}
+Obsoletes:      ghostty-bat-syntax < %{version}-%{release}
+Provides:       ghostty-shell-integration = %{version}-%{release}
+Obsoletes:      ghostty-shell-integration < %{version}-%{release}
+Provides:       ghostty-terminfo = %{version}-%{release}
+Obsoletes:      ghostty-terminfo < %{version}-%{release}
+Provides:       ghostty-bash-completion = %{version}-%{release}
+Obsoletes:      ghostty-bash-completion < %{version}-%{release}
+Provides:       ghostty-zsh-completion = %{version}-%{release}
+Obsoletes:      ghostty-zsh-completion < %{version}-%{release}
+Provides:       ghostty-fish-completion = %{version}-%{release}
+Obsoletes:      ghostty-fish-completion < %{version}-%{release}
 
 %package devel
 Summary: Development files for Ghostty
@@ -185,6 +210,12 @@ rm -f "%{buildroot}%{_prefix}/share/terminfo/g/ghostty"
 %{ghostty_pkgconfig_dir}/libghostty-vt.pc
 
 %changelog
+* Thu Oct 29 2026 Purian23 <purian23@users.noreply.github.com> - 1.4.0-3
+- Obsolete terra's split ghostty subpackages (vim, neovim, nautilus, kio, bat-syntax,
+  shell-integration, terminfo and the shell completions): their files ship in the main
+  package and terra pins an exact version-release, which blocked the 1.4 upgrade
+- Require gtk4-layer-shell >= 1.0.4 at runtime, matching the build requirement
+
 * Wed Oct 28 2026 Purian23 <purian23@users.noreply.github.com> - 1.4.0-2
 - Build with a bundled official Zig 0.17.0 toolchain (1.4.0 needs zig >= 0.17)
 - Require GTK >= 4.18, libadwaita >= 1.7, gtk4-layer-shell >= 1.0.4 and system EGL
