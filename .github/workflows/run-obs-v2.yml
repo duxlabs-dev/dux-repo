@@ -41,6 +41,15 @@ on:
           - debian
           - opensuse
         default: "both"
+      owners:
+        description: "OBS owners to publish to"
+        required: false
+        type: choice
+        options:
+          - all
+          - duxlabs
+          - avengemedia
+        default: all
   schedule:
     - cron: "0 */6 * * *" # Every 6 hours for git packages
   # From dux-greeter notify-packaging.yml
@@ -53,10 +62,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-upload:
-    name: Build and upload packages
+  plan:
+    name: Plan OBS owners
     runs-on: ubuntu-latest
     if: github.repository_owner == 'duxlabs-dev'
+    outputs:
+      matrix: ${{ steps.owners.outputs.matrix }}
+
+    steps:
+      - name: Plan OBS owners
+        id: owners
+        env:
+          # duxlabs is dispatch-only until its OBS account exists; drop this gate then
+          OWNERS: ${{ github.event_name == 'workflow_dispatch' && inputs.owners || 'avengemedia' }}
+        run: |
+          MATRIX=$(jq -cn --arg o "$OWNERS" '[
+              {owner: "duxlabs", suffix: "", project: "home:duxlabs:dux-repo"},
+              {owner: "avengemedia", suffix: "_LEGACY", project: "home:AvengeMedia:danklinux"}
+            ] | map(select($o == "all" or .owner == $o))
+            | if length == 0 then error("unknown owner: \($o)") else {include: .} end')
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "OBS owners: $(jq -r '[.include[].owner] | join(", ")' <<< "$MATRIX")"
+
+  build-and-upload:
+    name: Build and upload packages (${{ matrix.owner }})
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      OBS_PROJECT: ${{ matrix.project }}
 
     steps:
       - name: Checkout repository
@@ -73,7 +109,11 @@ jobs:
             ghostty-zig-deps-v1-
 
       - name: Install system dependencies
+        env:
+          OBS_USERNAME: ${{ secrets[format('OBS_USERNAME{0}', matrix.suffix)] }}
+          OBS_PASSWORD: ${{ secrets[format('OBS_PASSWORD{0}', matrix.suffix)] }}
         run: |
+          : "${OBS_USERNAME:?OBS_USERNAME${{ matrix.suffix }} secret not set}" "${OBS_PASSWORD:?OBS_PASSWORD${{ matrix.suffix }} secret not set}"
           sudo apt-get update
           sudo apt-get install -y osc jq curl dpkg-dev debhelper libglib2.0-dev
 
@@ -83,22 +123,16 @@ jobs:
 
           # Configure osc
           mkdir -p ~/.config/osc
-          cat > ~/.config/osc/oscrc << EOF
-          [general]
-          apiurl = https://api.opensuse.org
-
-          [https://api.opensuse.org]
-          user = ${{ secrets.OBS_USERNAME }}
-          pass = ${{ secrets.OBS_PASSWORD }}
-          EOF
-          chmod 600 ~/.config/osc/oscrc
+          umask 077
+          printf '[general]\napiurl = https://api.opensuse.org\n\n[https://api.opensuse.org]\nuser = %s\npass = %s\n' \
+            "$OBS_USERNAME" "$OBS_PASSWORD" > ~/.config/osc/oscrc
 
       - name: Test OBS authentication
         run: |
           echo "Testing OBS credentials..."
           if ! osc api /about > /dev/null 2>&1; then
             echo "❌ ERROR: OBS authentication failed!"
-            echo "Please check that OBS_USERNAME and OBS_PASSWORD secrets are correctly set."
+            echo "Please check that OBS_USERNAME${{ matrix.suffix }} and OBS_PASSWORD${{ matrix.suffix }} secrets are correctly set."
             exit 1
           fi
           echo "✅ OBS authentication successful"
@@ -119,8 +153,8 @@ jobs:
         id: packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OBS_USERNAME: ${{ secrets.OBS_USERNAME }}
-          OBS_PASSWORD: ${{ secrets.OBS_PASSWORD }}
+          OBS_USERNAME: ${{ secrets[format('OBS_USERNAME{0}', matrix.suffix)] }}
+          OBS_PASSWORD: ${{ secrets[format('OBS_PASSWORD{0}', matrix.suffix)] }}
           DISPATCH_TYPE: ${{ github.event.action }}
         run: |
           # Determine which packages to build
@@ -147,8 +181,8 @@ jobs:
       - name: Build and upload packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OBS_USERNAME: ${{ secrets.OBS_USERNAME }}
-          OBS_PASSWORD: ${{ secrets.OBS_PASSWORD }}
+          OBS_USERNAME: ${{ secrets[format('OBS_USERNAME{0}', matrix.suffix)] }}
+          OBS_PASSWORD: ${{ secrets[format('OBS_PASSWORD{0}', matrix.suffix)] }}
           PACKAGES: ${{ steps.packages.outputs.packages }}
           REBUILD_NUMBER: ${{ github.event.inputs.rebuild_number }}
           DISTRO: ${{ github.event.inputs.distro || 'both' }}
@@ -169,28 +203,22 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: build-logs
+          name: build-logs-${{ matrix.owner }}
           path: |
             /tmp/obs-build-*/build.log
             /tmp/osc-*.log
           retention-days: 7
 
-  summary:
-    name: Build summary
-    needs: build-and-upload
-    if: always()
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Generate summary
+      - name: Build summary
+        if: always()
         run: |
-          echo "# OBS Package Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "# OBS Package Build Summary (${{ matrix.owner }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Workflow:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "${{ needs.build-and-upload.result }}" == "success" ]]; then
+          if [[ "${{ job.status }}" == "success" ]]; then
             echo "**Status:** ✅ Build completed" >> $GITHUB_STEP_SUMMARY
           else
             echo "**Status:** ❌ Build failed" >> $GITHUB_STEP_SUMMARY
@@ -199,4 +227,4 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📊 [View OBS Project](https://build.opensuse.org/project/show/home:AvengeMedia:danklinux)" >> $GITHUB_STEP_SUMMARY
+          echo "📊 [View OBS Project](https://build.opensuse.org/project/show/${OBS_PROJECT})" >> $GITHUB_STEP_SUMMARY

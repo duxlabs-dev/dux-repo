@@ -16,7 +16,6 @@ source "$SCRIPT_DIR/lib/package-config.sh"
 init_common
 
 # OBS Configuration
-OBS_PROJECT="${OBS_PROJECT:-home:AvengeMedia:danklinux}"
 OBS_CACHE_DIR="$HOME/.cache/osc-checkouts"
 
 # Usage information
@@ -367,7 +366,9 @@ log_success "Upload completed successfully!"
 META_FILE="$(cd "$SCRIPT_DIR/../.." && pwd)/obs-package-meta/${PACKAGE}.xml"
 if [[ -f "$META_FILE" ]]; then
     log_info "Applying package meta: $META_FILE"
-    if osc meta pkg "$OBS_PROJECT" "$PACKAGE" -F "$META_FILE"; then
+    # OBS rejects package meta whose project attribute differs from the target project
+    if sed "/<package /s#project=\"[^\"]*\"#project=\"$OBS_PROJECT\"#" "$META_FILE" |
+        osc meta pkg "$OBS_PROJECT" "$PACKAGE" -F -; then
         log_success "Package meta applied"
     else
         log_warn "Failed to apply package meta (non-fatal): $META_FILE"

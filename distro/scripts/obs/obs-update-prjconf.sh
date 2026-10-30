@@ -1,10 +1,13 @@
 #!/bin/bash
-# Upload OBS project configuration for home:AvengeMedia:danklinux
+# Upload OBS project configuration for $OBS_PROJECT
 # Usage: ./distro/scripts/obs/obs-update-prjconf.sh
 
 # Get script directory and repository root
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# shellcheck source=./lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
 
 cd "$REPO_ROOT"
 
@@ -15,13 +18,11 @@ if [[ ! -f "distro/obs-project.conf" ]]; then
 fi
 
 echo "==> Updating OBS project configuration..."
-echo "    Project: home:AvengeMedia:danklinux"
+echo "    Project: $OBS_PROJECT"
 echo "    Config file: distro/obs-project.conf"
 echo ""
 
-osc meta prjconf home:AvengeMedia:danklinux -F distro/obs-project.conf
-
-if [[ $? -eq 0 ]]; then
+if osc meta prjconf "$OBS_PROJECT" -F distro/obs-project.conf; then
     echo ""
     echo "✅ Project configuration updated on OBS"
     echo ""

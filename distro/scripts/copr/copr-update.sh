@@ -43,9 +43,9 @@ version_is_newer() {
 release_has_asset() {
     local repo="$1" tag="$2" asset="$3" data
     if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-        data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/${repo}/releases/tags/${tag}")
+        data=$(curl -sL -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/${repo}/releases/tags/${tag}")
     else
-        data=$(curl -s "https://api.github.com/repos/${repo}/releases/tags/${tag}")
+        data=$(curl -sL "https://api.github.com/repos/${repo}/releases/tags/${tag}")
     fi
     echo "$data" | jq -e --arg a "$asset" '.assets // [] | map(.name) | index($a) != null' >/dev/null 2>&1
 }
@@ -334,42 +334,6 @@ else
 fi
 
 # ============================================================================
-# CLIPHIST
-# ============================================================================
-echo ""
-echo "📦 Checking cliphist..."
-
-SPEC_FILE="cliphist/cliphist.spec"
-UPSTREAM_REPO="sentriz/cliphist"
-
-# Get current version from spec
-CURRENT_VERSION=$(grep -oP '^Version:\s+\K[0-9.]+' "$SPEC_FILE" || echo "unknown")
-echo "   Current: $CURRENT_VERSION"
-
-# Fetch latest release tag
-LATEST_TAG=$("$SCRIPT_DIR/../common/fetch-version.sh" "$UPSTREAM_REPO" "release")
-LATEST_VERSION="${LATEST_TAG#v}"
-
-if [[ -n "$LATEST_VERSION" ]]; then
-    echo "   Latest:  $LATEST_VERSION"
-
-    if [[ "$CURRENT_VERSION" != "$LATEST_VERSION" ]]; then
-        echo "   ✨ Update available: $CURRENT_VERSION → $LATEST_VERSION"
-
-        # Update the spec file
-        sed -i "s/^Version:\s\+.*/Version:        $LATEST_VERSION/" "$SPEC_FILE"
-        reset_release "$SPEC_FILE" "$LATEST_VERSION"
-
-        UPDATED=$((UPDATED + 1))
-        UPDATED_PACKAGES+=("cliphist: $CURRENT_VERSION → $LATEST_VERSION")
-    else
-        echo "   ✓ Already up to date"
-    fi
-else
-    echo "   ⚠ Could not fetch latest version"
-fi
-
-# ============================================================================
 # MATUGEN
 # ============================================================================
 echo ""
@@ -403,43 +367,6 @@ if [[ -n "$LATEST_VERSION" ]]; then
     fi
 else
     echo "   ⚠ Could not fetch latest version"
-fi
-
-# ============================================================================
-# BREAKPAD (uses date-based versioning)
-# ============================================================================
-echo ""
-echo "📦 Checking breakpad..."
-
-SPEC_FILE="breakpad/breakpad.spec"
-UPSTREAM_REPO="chromium/breakpad/breakpad"
-
-# Get current version from spec
-CURRENT_VERSION=$(grep -oP '^Version:\s+\K[0-9.]+' "$SPEC_FILE" || echo "unknown")
-echo "   Current: $CURRENT_VERSION"
-
-# Note: Breakpad uses commit-based releases, checking latest tag
-LATEST_TAG=$("$SCRIPT_DIR/../common/fetch-version.sh" "$UPSTREAM_REPO" "release" 2>/dev/null || echo "")
-LATEST_VERSION="${LATEST_TAG#v}"
-
-if [[ -n "$LATEST_VERSION" ]]; then
-    echo "   Latest:  $LATEST_VERSION"
-
-    if [[ "$CURRENT_VERSION" != "$LATEST_VERSION" ]]; then
-        echo "   ✨ Update available: $CURRENT_VERSION → $LATEST_VERSION"
-
-        # Update the spec file
-        sed -i "s/^Version:\s\+.*/Version:            $LATEST_VERSION/" "$SPEC_FILE"
-        reset_release "$SPEC_FILE" "$LATEST_VERSION"
-
-        UPDATED=$((UPDATED + 1))
-        UPDATED_PACKAGES+=("breakpad: $CURRENT_VERSION → $LATEST_VERSION")
-    else
-        echo "   ✓ Already up to date"
-    fi
-else
-    echo "   ℹ️  Breakpad uses manual versioning (chromium snapshots)"
-    echo "   Current version: $CURRENT_VERSION"
 fi
 
 # ============================================================================
@@ -608,7 +535,7 @@ if [[ -n "$LATEST_COMMIT" ]]; then
         sed -i "s/^%global commits\s\+.*/%global commits     $COMMIT_COUNT/" "$SPEC_FILE"
         sed -i "s/^%global snapdate\s\+.*/%global snapdate    $LATEST_SNAPDATE/" "$SPEC_FILE"
 
-        COMMON_COMMIT=$(curl -s "https://api.github.com/repos/$UPSTREAM_REPO/contents/dux-qml-common?ref=$LATEST_COMMIT" | jq -r '.sha // empty')
+        COMMON_COMMIT=$(curl -sL "https://api.github.com/repos/$UPSTREAM_REPO/contents/dux-qml-common?ref=$LATEST_COMMIT" | jq -r '.sha // empty')
         if [[ -n "$COMMON_COMMIT" ]]; then
             sed -i "s/^%global common_commit\s\+.*/%global common_commit $COMMON_COMMIT/" "$SPEC_FILE"
             echo "   dux-qml-common pinned: ${COMMON_COMMIT:0:7}"
@@ -764,7 +691,7 @@ if [[ -n "$LATEST_COMMIT" ]]; then
         sed -i "s/^%global commits\s\+.*/%global commits     $COMMIT_COUNT/" "$SPEC_FILE"
         sed -i "s/^%global snapdate\s\+.*/%global snapdate    $LATEST_SNAPDATE/" "$SPEC_FILE"
 
-        COMMON_COMMIT=$(curl -s "https://api.github.com/repos/$UPSTREAM_REPO/contents/dux-qml-common?ref=$LATEST_COMMIT" | jq -r '.sha // empty')
+        COMMON_COMMIT=$(curl -sL "https://api.github.com/repos/$UPSTREAM_REPO/contents/dux-qml-common?ref=$LATEST_COMMIT" | jq -r '.sha // empty')
         if [[ -n "$COMMON_COMMIT" ]]; then
             sed -i "s/^%global common_commit\s\+.*/%global common_commit $COMMON_COMMIT/" "$SPEC_FILE"
             echo "   dux-qml-common pinned: ${COMMON_COMMIT:0:7}"
@@ -925,7 +852,7 @@ if [[ -n "$LATEST_COMMIT" ]]; then
         fi
 
         # Submodule commit must be resolved before the spec is touched (Source1 must match Source0).
-        COMMON_COMMIT=$(curl -s ${GITHUB_TOKEN:+-H "Authorization: token $GITHUB_TOKEN"} \
+        COMMON_COMMIT=$(curl -sL ${GITHUB_TOKEN:+-H "Authorization: token $GITHUB_TOKEN"} \
             "https://api.github.com/repos/$UPSTREAM_REPO/contents/dux-qml-common?ref=$LATEST_COMMIT" | jq -r '.sha // empty')
         if [[ -z "$COMMON_COMMIT" ]]; then
             echo "   ⚠ Could not resolve dux-qml-common submodule commit for $LATEST_COMMIT; retrying next run"
@@ -1004,9 +931,7 @@ if [[ -n "${COPR_REBUILD_COUNT:-}" || -n "${COPR_REBUILD_PACKAGE:-}" ]]; then
         distro/fedora/quickshell/quickshell.spec
         distro/fedora/quickshell/quickshell-git.spec
         distro/fedora/dgop/dgop.spec
-        distro/fedora/cliphist/cliphist.spec
         distro/fedora/matugen/matugen.spec
-        distro/fedora/breakpad/breakpad.spec
         distro/fedora/ghostty/ghostty.spec
         distro/fedora/fonts/material-symbols-fonts.spec
         distro/fedora/danksearch/danksearch.spec
@@ -1025,9 +950,7 @@ if [[ -n "${COPR_REBUILD_COUNT:-}" || -n "${COPR_REBUILD_PACKAGE:-}" ]]; then
         quickshell) _copr_bump_spec_release distro/fedora/quickshell/quickshell.spec ;;
         quickshell-git) _copr_bump_spec_release distro/fedora/quickshell/quickshell-git.spec ;;
         dgop) _copr_bump_spec_release distro/fedora/dgop/dgop.spec ;;
-        cliphist) _copr_bump_spec_release distro/fedora/cliphist/cliphist.spec ;;
         matugen) _copr_bump_spec_release distro/fedora/matugen/matugen.spec ;;
-        breakpad) _copr_bump_spec_release distro/fedora/breakpad/breakpad.spec ;;
         ghostty) _copr_bump_spec_release distro/fedora/ghostty/ghostty.spec ;;
         material-symbols-fonts) _copr_bump_spec_release distro/fedora/fonts/material-symbols-fonts.spec ;;
         danksearch) _copr_bump_spec_release distro/fedora/danksearch/danksearch.spec ;;

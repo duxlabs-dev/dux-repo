@@ -5,8 +5,8 @@
 
 set -euo pipefail
 
-COPR_OWNER="avengemedia"
-COPR_PROJECT="danklinux"
+COPR_OWNER="${COPR_OWNER:-duxlabs}"
+COPR_PROJECT="${COPR_PROJECT:-dux-repo}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
@@ -44,8 +44,7 @@ if [[ $# -lt 1 ]]; then
     echo "Available packages:"
     echo "  cli11, quickshell, quickshell-git, dankcalendar, dankcalendar-git, dux-files, dux-files-git,"
     echo "  dms-greeter, dms-greeter-git,"
-    echo "  dgop, cliphist, matugen,"
-    echo "  breakpad, ghostty, danksearch, material-symbols-fonts, qt6ct-kde,"
+    echo "  dgop, matugen, ghostty, danksearch, material-symbols-fonts, qt6ct-kde,"
     echo "  greetd, gtk4-layer-shell, cava, alacritty, xwayland-satellite (EL10 only)"
     exit 1
 fi

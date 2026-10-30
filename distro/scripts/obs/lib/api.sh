@@ -142,7 +142,7 @@ get_commit_count() {
     fi
 
     # Try to get count via API pagination (faster than cloning)
-    local response=$(curl -sI -H "Accept: application/vnd.github.v3+json" \
+    local response=$(curl -sIL -H "Accept: application/vnd.github.v3+json" \
         ${GITHUB_TOKEN:+-H "Authorization: token $GITHUB_TOKEN"} \
         "$GITHUB_API/repos/$repo/commits?per_page=1&sha=$branch" 2>/dev/null)
 
@@ -247,7 +247,7 @@ get_latest_tag() {
 # Returns: Version string from spec file
 get_obs_version() {
     local package="$1"
-    local project="${OBS_PROJECT:-home:AvengeMedia:danklinux}"
+    local project="$OBS_PROJECT"
 
     # Check cache first
     local cache_key="obs_${project//[:\/ ]/_}_${package}_version"
@@ -355,7 +355,7 @@ get_obs_version() {
 # Returns: 0 if exists, 1 if not
 obs_package_exists() {
     local package="$1"
-    local project="${OBS_PROJECT:-home:AvengeMedia:danklinux}"
+    local project="$OBS_PROJECT"
 
     if ! command -v osc &> /dev/null; then
         log_warn "osc command not found, cannot check OBS package existence"

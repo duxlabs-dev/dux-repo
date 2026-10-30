@@ -52,7 +52,6 @@ PACKAGES=(
     "quickshell:quickshell-mirror/quickshell:release"
     "niri:niri-wm/niri:release"
     "xwayland-satellite:Supreeeme/xwayland-satellite:release"
-    "cliphist:sentriz/cliphist:release"
     "matugen:InioX/matugen:release"
     "ghostty:ghostty-org/ghostty:release"
     "danksearch:duxlabs-dev/dux-search:release"
@@ -77,8 +76,8 @@ get_git_info() {
     local branch="${2:-main}"
     
     local commit_data
-    commit_data=$(curl -sf "https://api.github.com/repos/$repo/commits/$branch" 2>/dev/null || \
-                  curl -sf "https://api.github.com/repos/$repo/commits/master" 2>/dev/null || echo "")
+    commit_data=$(curl -sfL "https://api.github.com/repos/$repo/commits/$branch" 2>/dev/null || \
+                  curl -sfL "https://api.github.com/repos/$repo/commits/master" 2>/dev/null || echo "")
     
     if [ -z "$commit_data" ]; then
         echo ""
@@ -90,7 +89,7 @@ get_git_info() {
     
     # Get commit count via API pagination
     local commit_count
-    commit_count=$(curl -sI "https://api.github.com/repos/$repo/commits?per_page=1" 2>/dev/null | \
+    commit_count=$(curl -sIL "https://api.github.com/repos/$repo/commits?per_page=1" 2>/dev/null | \
         grep -i 'link:' | sed 's/.*page=\([0-9]*\)>; rel="last".*/\1/' || echo "")
     
     if [ -z "$commit_count" ]; then

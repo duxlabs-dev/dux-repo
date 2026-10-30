@@ -20,9 +20,9 @@ gh_curl() {
     
     while [ $count -lt $retries ]; do
         if [ -n "${GITHUB_TOKEN:-}" ]; then
-            response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$url")
+            response=$(curl -sL -H "Authorization: token $GITHUB_TOKEN" "$url")
         else
-            response=$(curl -s "$url")
+            response=$(curl -sL "$url")
         fi
         
         if [ -n "$response" ] && echo "$response" | jq -e . >/dev/null 2>&1; then
@@ -85,9 +85,9 @@ elif [[ "$TYPE" == "repo_commit_total" ]]; then
     # Same semantics as distro/scripts/ppa/debian-update.sh get_git_info (Link rel=last page).
     url="https://api.github.com/repos/${REPO}/commits?per_page=1"
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-        headers=$(curl -sI -H "Authorization: token $GITHUB_TOKEN" "$url") || exit 1
+        headers=$(curl -sIL -H "Authorization: token $GITHUB_TOKEN" "$url") || exit 1
     else
-        headers=$(curl -sI "$url") || exit 1
+        headers=$(curl -sIL "$url") || exit 1
     fi
     last_page=$(printf '%s\n' "$headers" | grep -i '^link:' | sed 's/.*page=\([0-9]*\)>; rel="last".*/\1/')
     if [[ -n "$last_page" ]]; then

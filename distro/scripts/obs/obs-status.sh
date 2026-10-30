@@ -8,7 +8,8 @@
 
 set -euo pipefail
 
-OBS_BASE_PROJECT="home:AvengeMedia:danklinux"
+# shellcheck source=./lib/common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 OBS_BASE="$HOME/.cache/osc-checkouts"
 
 ALL_PACKAGES=(matugen matugen-snapshot niri niri-git quickshell quickshell-git xwayland-satellite xwayland-satellite-git danksearch dgop ghostty dankcalendar dankcalendar-git dux-files dux-files-git dms-greeter dms-greeter-git cli11 rust187)
@@ -94,7 +95,7 @@ fetch_brief_failure() {
         if [[ -n "$detailed" ]]; then
             echo "  Reason: $detailed"
         fi
-        if REASON=$(osc api "/build/$OBS_BASE_PROJECT/$repo/$arch/$pkg/_reason" 2>&1); then
+        if REASON=$(osc api "/build/$OBS_PROJECT/$repo/$arch/$pkg/_reason" 2>&1); then
             if echo "$REASON" | grep -q "<explain>"; then
                 echo "  OBS: $(echo "$REASON" | grep -oP '<explain>\K[^<]*' || true)"
             fi
@@ -103,7 +104,7 @@ fetch_brief_failure() {
     fi
 
     # failed: grep last meaningful errors from build log (fast, no full download)
-    osc remotebuildlog "$OBS_BASE_PROJECT" "$pkg" "$repo" "$arch" 2>&1 | \
+    osc remotebuildlog "$OBS_PROJECT" "$pkg" "$repo" "$arch" 2>&1 | \
         rg -i "error:|fatal error|unresolvable|nothing provides|failed \"build" | tail -8 || \
         echo "  (no error lines found — try --logs)"
 }
@@ -122,7 +123,7 @@ fetch_full_log() {
         return
     fi
 
-    osc remotebuildlog "$OBS_BASE_PROJECT" "$pkg" "$repo" "$arch" 2>&1 | tail -80 || true
+    osc remotebuildlog "$OBS_PROJECT" "$pkg" "$repo" "$arch" 2>&1 | tail -80 || true
 }
 
 mkdir -p "$OBS_BASE"
@@ -132,10 +133,10 @@ for pkg in "${PACKAGES[@]}"; do
     echo "=========================================="
     echo "=== $pkg ==="
     echo "=========================================="
-    PKG_DIR="$OBS_BASE/$OBS_BASE_PROJECT/$pkg"
+    PKG_DIR="$OBS_BASE/$OBS_PROJECT/$pkg"
 
     if [[ ! -d "$PKG_DIR" ]]; then
-        if ! (cd "$OBS_BASE" && osc co "$OBS_BASE_PROJECT/$pkg" 2>&1 | tail -1); then
+        if ! (cd "$OBS_BASE" && osc co "$OBS_PROJECT/$pkg" 2>&1 | tail -1); then
             echo "  Failed to checkout OBS package: $pkg"
             echo ""
             continue

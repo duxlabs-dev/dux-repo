@@ -16,7 +16,6 @@ on:
           - all
           - alacritty
           - cava
-          - cliphist
           - dankcalendar
           - dankcalendar-git
           - dms-greeter
@@ -39,6 +38,15 @@ on:
         description: "Release number for COPR rebuilds (e.g., 2, 3, 4)."
         required: false
         default: ''
+      owners:
+        description: 'COPR owners to publish to'
+        required: false
+        type: choice
+        options:
+          - all
+          - duxlabs
+          - avengemedia
+        default: all
 
   push:
     branches:
@@ -78,6 +86,7 @@ jobs:
     outputs:
       has_changes: ${{ steps.update.outputs.has_changes }}
       spec_changes: ${{ steps.check_push.outputs.spec_changes }}
+      copr_matrix: ${{ steps.owners.outputs.matrix }}
 
     steps:
       - name: Install dependencies
@@ -85,6 +94,20 @@ jobs:
           dnf install -y jq curl git rpmdevtools wget
           wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           chmod +x /usr/local/bin/yq
+
+      # A job-level if cannot read matrix, so the owners input filters the matrix here
+      - name: Plan COPR owners
+        id: owners
+        env:
+          OWNERS: ${{ inputs.owners || 'all' }}
+        run: |
+          MATRIX=$(jq -cn --arg o "$OWNERS" '[
+              {owner: "duxlabs", suffix: "", copr: "dux-repo"},
+              {owner: "avengemedia", suffix: "_LEGACY", copr: "danklinux"}
+            ] | map(select($o == "all" or .owner == $o))
+            | if length == 0 then error("unknown owner: \($o)") else {include: .} end')
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "COPR owners: $(jq -r '[.include[].owner] | join(", ")' <<< "$MATRIX")"
 
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -205,7 +228,7 @@ jobs:
           retention-days: 30
 
   trigger-copr-builds:
-    name: Trigger COPR builds
+    name: Trigger COPR builds (${{ matrix.owner }})
     needs: update-packages
     runs-on: ubuntu-latest
     if: |
@@ -214,12 +237,16 @@ jobs:
         needs.update-packages.outputs.spec_changes == 'true' ||
         github.event.inputs.package != ''
       )
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.update-packages.outputs.copr_matrix) }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          ref: master
+          # Branch tip, not github.sha: includes the spec update the first job just pushed
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Install COPR CLI
@@ -231,14 +258,9 @@ jobs:
 
       - name: Configure COPR
         env:
-          COPR_CONFIG: ${{ secrets.COPR_CONFIG }}
+          COPR_CONFIG: ${{ secrets[format('COPR_CONFIG{0}', matrix.suffix)] }}
         run: |
-          if [[ -z "$COPR_CONFIG" ]]; then
-            echo "❌ COPR_CONFIG secret not set"
-            echo "Please add your COPR configuration as a repository secret named COPR_CONFIG"
-            exit 1
-          fi
-
+          : "${COPR_CONFIG:?COPR_CONFIG${{ matrix.suffix }} secret not set}"
           mkdir -p ~/.config
           echo "$COPR_CONFIG" > ~/.config/copr
           chmod 600 ~/.config/copr
@@ -246,6 +268,8 @@ jobs:
       - name: Trigger builds
         env:
           MANUAL_PACKAGE: ${{ github.event.inputs.package }}
+          COPR_OWNER: ${{ matrix.owner }}
+          COPR_PROJECT: ${{ matrix.copr }}
           COPR_SKIP_DIFF: ${{ github.event_name == 'workflow_dispatch' && needs.update-packages.outputs.has_changes != 'true' }}
           COPR_DIFF_BASE: ${{ github.event_name == 'push' && github.event.before || github.sha }}
         run: |
@@ -258,7 +282,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Builds have been triggered for updated packages." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "🔗 [View builds](https://copr.fedorainfracloud.org/coprs/avengemedia/danklinux/builds/)" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View builds](https://copr.fedorainfracloud.org/coprs/${{ matrix.owner }}/${{ matrix.copr }}/builds/)" >> $GITHUB_STEP_SUMMARY
 
     outputs:
       has_changes: ${{ needs.update-packages.outputs.has_changes }}

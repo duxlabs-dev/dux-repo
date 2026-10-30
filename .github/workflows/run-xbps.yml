@@ -1,7 +1,7 @@
 name: Void Linux XBPS Repository
 
-# Publishes two R2 prefixes: danklinux/current (Dux Labs tools) and
-# dms/current (dms-greeter, shared with dux-shell; guarded by publish-void-r2.sh).
+# LEGACY_MIRROR keeps pre-rebrand conf files working: tools also go to danklinux/current, the
+# greeter to dms/current (shared with dux-shell, ETag-guarded by publish-void-r2.sh).
 
 on:
   schedule:
@@ -36,14 +36,15 @@ concurrency:
   group: void-xbps-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  # Freeze two weeks after `dms migrate dux` ships: set to "false".
+  LEGACY_MIRROR: "true"
+
 jobs:
   build-and-deploy:
-    name: Build & Deploy XBPS packages (danklinux)
+    name: Build & Deploy XBPS packages
     runs-on: ubuntu-latest
-    if: >-
-      github.repository_owner == 'duxlabs-dev' &&
-      github.event_name != 'repository_dispatch' &&
-      !startsWith(github.event.inputs.package || 'all', 'dms-greeter')
+    if: github.repository_owner == 'duxlabs-dev'
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -51,8 +52,10 @@ jobs:
       AWS_EC2_METADATA_DISABLED: true
       R2_BUCKET: danklinux-void
       R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
-      R2_PREFIX: danklinux
+      R2_PREFIX: dux-repo
       REPOSITORY_DIR: ${{ github.workspace }}/r2-repo
+      GREETER_SRC: ${{ github.workspace }}/greeter-src
+      GITHUB_TOKEN: ${{ github.token }}
       SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Checkout repository
@@ -62,6 +65,46 @@ jobs:
 
       - name: Record checked-out source commit
         run: echo "SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Determine packages
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_TYPE: ${{ github.event.action }}
+          SELECTED: ${{ github.event.inputs.package || 'all' }}
+        run: |
+          case "$EVENT_NAME" in
+            repository_dispatch)
+              case "$DISPATCH_TYPE" in
+                greeter-git)     PACKAGES="dms-greeter-git" ;;
+                greeter-release) PACKAGES="dms-greeter" ;;
+                *) echo "Unknown dispatch type: $DISPATCH_TYPE" >&2; exit 1 ;;
+              esac
+              ;;
+            *)
+              if [ "$SELECTED" = "all" ]; then
+                PACKAGES="dgop danksearch dankcalendar dux-files dms-greeter-git dms-greeter"
+              else
+                PACKAGES="$SELECTED"
+              fi
+              ;;
+          esac
+          case " $PACKAGES " in
+            *" dms-greeter"*) GREETER=true ;;
+            *) GREETER=false ;;
+          esac
+          echo "packages=$PACKAGES" >> "$GITHUB_OUTPUT"
+          echo "greeter=$GREETER" >> "$GITHUB_OUTPUT"
+          echo "Packages to build: $PACKAGES"
+
+      - name: Clone dux-greeter
+        if: steps.plan.outputs.greeter == 'true'
+        # A failed clone fails only the greeter builds, below.
+        continue-on-error: true
+        run: |
+          # Full history: the snapshot version embeds the commit count.
+          git clone --recurse-submodules https://github.com/duxlabs-dev/dux-greeter.git "$GREETER_SRC"
+          git -C "$GREETER_SRC" log -1 --oneline
 
       - name: Download current R2 repository
         run: |
@@ -80,12 +123,7 @@ jobs:
 
       - name: Inject templates
         run: |
-          for pkg in distro/void/srcpkgs/*/; do
-            case "$(basename "$pkg")" in
-              dms-greeter|dms-greeter-git) continue ;;
-            esac
-            cp -R "$pkg" void-packages/srcpkgs/
-          done
+          cp -R distro/void/srcpkgs/* void-packages/srcpkgs/
 
       - name: Enable unprivileged user namespaces (Ubuntu 24.04)
         run: |
@@ -98,201 +136,12 @@ jobs:
 
       - name: Configure signing keys and trust
         run: |
-          # Write private key; extract and register the public key for
-          # host and chroot trust.
           echo "${{ secrets.XBPS_PRIVATE_KEY }}" > /tmp/xbps_privkey.pem
           chmod 600 /tmp/xbps_privkey.pem
 
           openssl rsa -in /tmp/xbps_privkey.pem -pubout -out /tmp/dms-key.pub
-          rm -f /tmp/xbps_privkey.pem   # cleaned up; re-written only for signing step
-
-          sudo mkdir -p /var/db/xbps/keys
-          sudo cp /tmp/dms-key.pub /var/db/xbps/keys/dms-key.pub
-
-          mkdir -p void-packages/masterdir/var/db/xbps/keys
-          cp /tmp/dms-key.pub void-packages/masterdir/var/db/xbps/keys/dms-key.pub
-          rm -f /tmp/dms-key.pub
-
-      - name: Configure repositories
-        run: |
-          # Add any existing compiled packages to the build cache directory to avoid rebuilds
-          if [ -d "r2-repo/current" ]; then
-            mkdir -p void-packages/hostdir/binpkgs
-            cp -L r2-repo/current/*.xbps void-packages/hostdir/binpkgs/ 2>/dev/null || true
-            xbps-rindex -a void-packages/hostdir/binpkgs/*.xbps 2>/dev/null || true
-          fi
-
-      - name: Build packages
-        run: |
-          mkdir -p r2-repo/current
-
-          FORCE_REBUILD="${{ github.event.inputs.force_rebuild || 'false' }}"
-
-          echo "=== Starting Builds ==="
-          echo "Force rebuild:        $FORCE_REBUILD"
-          echo "Package:              ${{ github.event.inputs.package || 'all' }}"
-
-          cd void-packages
-
-          PACKAGES=("dgop" "danksearch" "dankcalendar" "dux-files")
-          SELECTED="${{ github.event.inputs.package || 'all' }}"
-          if [ "$SELECTED" != "all" ]; then
-            PACKAGES=("$SELECTED")
-          fi
-
-          for pkg in "${PACKAGES[@]}"; do
-            # Read version/revision from template
-            VER=$(grep -E '^version=' srcpkgs/$pkg/template | cut -d= -f2 | tr -d '"')
-            REV=$(grep -E '^revision=' srcpkgs/$pkg/template | cut -d= -f2 | tr -d '"')
-
-            EXPECTED_FILE="${pkg}-${VER}_${REV}.x86_64.xbps"
-            if [ -f "../r2-repo/current/$EXPECTED_FILE" ] && [ "$FORCE_REBUILD" != "true" ]; then
-              echo "✅ $EXPECTED_FILE already exists, skipping build."
-            else
-              echo "🔨 Compiling $pkg ($VER)..."
-              ./xbps-src pkg "$pkg"
-              # Delete any existing file/symlink first to ensure we write a regular file
-              rm -f "../r2-repo/current/${EXPECTED_FILE}"
-              cp -L "hostdir/binpkgs/${EXPECTED_FILE}" ../r2-repo/current/
-            fi
-          done
-
-      - name: Index and sign repository
-        run: |
-          cd r2-repo/current
-
-          rm -f *.sig
-
-
-          # Guard: nothing to index if no .xbps files exist
-          if ! ls *.xbps 1>/dev/null 2>&1; then
-            echo "⚠️ No .xbps files found to index, skipping."
-            exit 0
-          fi
-
-          # Regenerate repo index
-          xbps-rindex -a $(pwd)/*.xbps
-          xbps-rindex --remove-obsoletes $(pwd)
-
-          # Remove signatures left behind by obsolete packages. Signatures for
-          # unchanged immutable packages are retained byte-for-byte.
-          for sig in *.sig2; do
-            [ -e "$sig" ] || break
-            [ -f "${sig%.sig2}" ] || rm -f "$sig"
-          done
-
-          # Sign repository
-          echo "${{ secrets.XBPS_PRIVATE_KEY }}" > /tmp/xbps_privkey.pem
-          chmod 600 /tmp/xbps_privkey.pem
-
-          xbps-rindex --sign --signedby "AvengeMedia <AvengeMedia.US@gmail.com>" --privkey /tmp/xbps_privkey.pem $(pwd)
-          xbps-rindex --sign-pkg --privkey /tmp/xbps_privkey.pem $(pwd)/*.xbps
-
           rm -f /tmp/xbps_privkey.pem
 
-      - name: Publish repository to R2
-        run: bash .github/scripts/publish-void-r2.sh publish
-
-  build-dms-prefix:
-    name: Build & Deploy XBPS packages (dms-greeter → dms)
-    runs-on: ubuntu-latest
-    # dms-greeter / dms-greeter-git into the shared dms/current prefix
-    if: >-
-      github.repository_owner == 'duxlabs-dev' &&
-      (github.event_name != 'workflow_dispatch' ||
-       (github.event.inputs.package || 'all') == 'all' ||
-       startsWith(github.event.inputs.package, 'dms-greeter'))
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: auto
-      AWS_EC2_METADATA_DISABLED: true
-      R2_BUCKET: danklinux-void
-      R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
-      # Must stay `dms`: existing greeter installs only have this repo configured.
-      R2_PREFIX: dms
-      REPOSITORY_DIR: ${{ github.workspace }}/r2-repo-dms
-      GREETER_SRC: ${{ github.workspace }}/greeter-src
-      GITHUB_TOKEN: ${{ github.token }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Clone dux-greeter
-        run: |
-          # Full history: the snapshot version embeds the commit count.
-          git clone --recurse-submodules https://github.com/duxlabs-dev/dux-greeter.git "$GREETER_SRC"
-          echo "SOURCE_COMMIT=$(git -C "$GREETER_SRC" rev-parse HEAD)" >> "$GITHUB_ENV"
-          git -C "$GREETER_SRC" log -1 --oneline
-
-      - name: Determine packages
-        id: plan
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          DISPATCH_TYPE: ${{ github.event.action }}
-          SELECTED: ${{ github.event.inputs.package || 'all' }}
-        run: |
-          case "$EVENT_NAME" in
-            repository_dispatch)
-              case "$DISPATCH_TYPE" in
-                greeter-git)     PACKAGES="dms-greeter-git" ;;
-                greeter-release) PACKAGES="dms-greeter" ;;
-                *) echo "Unknown dispatch type: $DISPATCH_TYPE" >&2; exit 1 ;;
-              esac
-              ;;
-            workflow_dispatch)
-              if [ "$SELECTED" = "all" ]; then
-                PACKAGES="dms-greeter-git dms-greeter"
-              else
-                PACKAGES="$SELECTED"
-              fi
-              ;;
-            *)
-              PACKAGES="dms-greeter-git dms-greeter"
-              ;;
-          esac
-          echo "packages=$PACKAGES" >> "$GITHUB_OUTPUT"
-          echo "Packages to build: $PACKAGES"
-
-      - name: Download current R2 repository
-        run: |
-          aws --version
-          bash .github/scripts/publish-void-r2.sh download
-
-      - name: Install XBPS Static Utilities
-        run: |
-          mkdir -p ${{ github.workspace }}/xbps
-          curl -s -L https://repo-default.voidlinux.org/static/xbps-static-latest.x86_64-musl.tar.xz | tar -xJ -C ${{ github.workspace }}/xbps
-          echo "${{ github.workspace }}/xbps/usr/bin" >> $GITHUB_PATH
-
-      - name: Clone void-packages
-        run: |
-          git clone --depth=1 https://github.com/void-linux/void-packages.git
-
-      - name: Inject greeter templates
-        run: |
-          cp -R distro/void/srcpkgs/dms-greeter void-packages/srcpkgs/
-          cp -R distro/void/srcpkgs/dms-greeter-git void-packages/srcpkgs/
-
-      - name: Enable unprivileged user namespaces (Ubuntu 24.04)
-        run: |
-          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
-
-      - name: Bootstrap xbps-src
-        run: |
-          cd void-packages
-          ./xbps-src binary-bootstrap
-
-      - name: Configure signing keys and trust
-        run: |
-          echo "${{ secrets.XBPS_PRIVATE_KEY }}" > /tmp/xbps_privkey.pem
-          chmod 600 /tmp/xbps_privkey.pem
-
-          openssl rsa -in /tmp/xbps_privkey.pem -pubout -out /tmp/dms-key.pub
-          rm -f /tmp/xbps_privkey.pem   # cleaned up; re-written only for signing step
-
           sudo mkdir -p /var/db/xbps/keys
           sudo cp /tmp/dms-key.pub /var/db/xbps/keys/dms-key.pub
 
@@ -302,7 +151,7 @@ jobs:
 
       - name: Configure repositories
         run: |
-          # Seed the build cache with published packages
+          # Seed the build cache with published packages to avoid rebuilds
           if [ -d "$REPOSITORY_DIR/current" ]; then
             mkdir -p void-packages/hostdir/binpkgs
             cp -L "$REPOSITORY_DIR"/current/*.xbps void-packages/hostdir/binpkgs/ 2>/dev/null || true
@@ -317,7 +166,6 @@ jobs:
           FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'false' }}
         run: |
           mkdir -p "$REPOSITORY_DIR/current"
-          BEFORE="$(ls "$REPOSITORY_DIR"/current/*.xbps 2>/dev/null | sort)"
           FORCE_ARGS=()
           if [ "$FORCE_REBUILD" = "true" ]; then
             FORCE_ARGS+=(--force)
@@ -326,58 +174,95 @@ jobs:
           echo "=== Starting Builds ==="
           echo "Force rebuild:        $FORCE_REBUILD"
           echo "Packages:             $PACKAGES"
-          echo "Greeter commit:       $SOURCE_COMMIT"
 
+          # errexit is off inside `if` conditions, so each command is chained with &&.
+          build_one() {
+            local pkg="$1" ver rev file
+            case "$pkg" in
+              dms-greeter|dms-greeter-git)
+                bash distro/scripts/void/void-build.sh "$pkg" \
+                  --source-dir="$GREETER_SRC" "${FORCE_ARGS[@]}"
+                return
+                ;;
+            esac
+            ver=$(grep -E '^version=' "$VOID_PACKAGES_DIR/srcpkgs/$pkg/template" | cut -d= -f2 | tr -d '"') &&
+            rev=$(grep -E '^revision=' "$VOID_PACKAGES_DIR/srcpkgs/$pkg/template" | cut -d= -f2 | tr -d '"') &&
+            file="${pkg}-${ver}_${rev}.x86_64.xbps" || return 1
+            if [ -f "$REPOSITORY_DIR/current/$file" ] && [ "$FORCE_REBUILD" != "true" ]; then
+              echo "✅ $file already exists, skipping build."
+              return 0
+            fi
+            echo "🔨 Compiling $pkg ($ver)..."
+            (cd "$VOID_PACKAGES_DIR" && ./xbps-src pkg "$pkg") &&
+            rm -f "$REPOSITORY_DIR/current/$file" &&
+            cp -L "$VOID_PACKAGES_DIR/hostdir/binpkgs/$file" "$REPOSITORY_DIR/current/"
+          }
+
+          FAILED=()
           for pkg in $PACKAGES; do
             echo "=========================================="
             echo "Building $pkg"
             echo "=========================================="
-            bash distro/scripts/void/void-build.sh "$pkg" \
-              --source-dir="$GREETER_SRC" "${FORCE_ARGS[@]}"
+            if ! build_one "$pkg"; then
+              echo "::error::$pkg failed to build"
+              FAILED+=("$pkg")
+            fi
           done
+          echo "failed=${FAILED[*]}" >> "$GITHUB_OUTPUT"
 
-          # Publish only when something was built; a no-op republish would churn the shared index.
-          AFTER="$(ls "$REPOSITORY_DIR"/current/*.xbps 2>/dev/null | sort)"
-          if [ "$BEFORE" != "$AFTER" ]; then
-            echo "built=true" >> "$GITHUB_OUTPUT"
+          # Also re-indexes objects a previous run uploaded but never indexed.
+          if bash .github/scripts/publish-void-r2.sh is-indexed; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Every package is indexed; skipping index and publish."
           else
-            echo "built=false" >> "$GITHUB_OUTPUT"
-            echo "No new packages built; skipping index and publish."
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Index and sign repository
-        if: steps.build.outputs.built == 'true'
-        run: |
-          cd "$REPOSITORY_DIR/current"
-
-          rm -f *.sig
-
-          # Guard: nothing to index if no .xbps files exist
-          if ! ls *.xbps 1>/dev/null 2>&1; then
-            echo "⚠️ No .xbps files found to index, skipping."
-            exit 0
-          fi
-
-          # Regenerate repo index
-          xbps-rindex -a $(pwd)/*.xbps
-          xbps-rindex --remove-obsoletes $(pwd)
-
-          # Remove signatures left behind by obsolete packages. Signatures for
-          # unchanged immutable packages are retained byte-for-byte.
-          for sig in *.sig2; do
-            [ -e "$sig" ] || break
-            [ -f "${sig%.sig2}" ] || rm -f "$sig"
-          done
-
-          # Sign repository
-          echo "${{ secrets.XBPS_PRIVATE_KEY }}" > /tmp/xbps_privkey.pem
-          chmod 600 /tmp/xbps_privkey.pem
-
-          xbps-rindex --sign --signedby "AvengeMedia <AvengeMedia.US@gmail.com>" --privkey /tmp/xbps_privkey.pem $(pwd)
-          xbps-rindex --sign-pkg --privkey /tmp/xbps_privkey.pem $(pwd)/*.xbps
-
-          rm -f /tmp/xbps_privkey.pem
+        if: steps.build.outputs.publish == 'true'
+        env:
+          XBPS_PRIVATE_KEY: ${{ secrets.XBPS_PRIVATE_KEY }}
+        run: bash .github/scripts/publish-void-r2.sh index
 
       - name: Publish repository to R2
-        if: steps.build.outputs.built == 'true'
+        if: steps.build.outputs.publish == 'true'
         run: bash .github/scripts/publish-void-r2.sh publish
+
+      - name: Mirror into legacy prefixes
+        if: env.LEGACY_MIRROR == 'true'
+        env:
+          XBPS_PRIVATE_KEY: ${{ secrets.XBPS_PRIVATE_KEY }}
+          NEW_REPOSITORY_DIR: ${{ github.workspace }}/r2-repo
+        run: |
+          shopt -s nullglob
+          for legacy in danklinux dms; do
+            export R2_PREFIX="$legacy" REPOSITORY_DIR="${{ github.workspace }}/r2-legacy-$legacy"
+            bash .github/scripts/publish-void-r2.sh download
+
+            for pkg in "$NEW_REPOSITORY_DIR"/current/*.xbps; do
+              name="$(basename "$pkg")"
+              case "$name" in
+                dms-greeter*) target=dms ;;
+                *) target=danklinux ;;
+              esac
+              # Never replace a legacy object: a rebuilt pkgver is not byte-identical.
+              if [ "$target" = "$legacy" ] && [ ! -e "$REPOSITORY_DIR/current/$name" ]; then
+                cp "$pkg" "$REPOSITORY_DIR/current/"
+              fi
+            done
+
+            if bash .github/scripts/publish-void-r2.sh is-indexed; then
+              echo "$legacy/current is up to date."
+              continue
+            fi
+            bash .github/scripts/publish-void-r2.sh index
+            bash .github/scripts/publish-void-r2.sh publish
+          done
+
+      - name: Fail on package build errors
+        if: always() && steps.build.outputs.failed != ''
+        env:
+          FAILED: ${{ steps.build.outputs.failed }}
+        run: |
+          echo "::error::Failed to build: $FAILED"
+          exit 1

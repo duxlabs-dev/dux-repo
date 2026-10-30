@@ -10,7 +10,6 @@ on:
         options:
           - auto
           - all
-          - cliphist
           - dankcalendar
           - dankcalendar-git
           - danksearch
@@ -32,6 +31,15 @@ on:
         description: 'Release number for rebuilds (e.g., 2, 3, 4 for ppa2, ppa3, ppa4)'
         required: false
         default: ''
+      owners:
+        description: 'PPA owners to publish to'
+        required: false
+        type: choice
+        options:
+          - all
+          - duxlabs
+          - avengemedia
+        default: all
   schedule:
     - cron: '0 */6 * * *'  # Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
   # From dux-greeter notify-packaging.yml
@@ -73,6 +81,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
           DISPATCH_TYPE: ${{ github.event.action }}
+          OWNERS: ${{ inputs.owners || 'all' }}
         run: |
           chmod +x distro/scripts/ppa/*.sh distro/scripts/common/*.sh
 
@@ -98,10 +107,25 @@ jobs:
             ARGS+=(--rebuild "$REBUILD_RELEASE")
           fi
 
-          TARGETS_JSON=$(distro/scripts/ppa/ppa-sync-plan.sh "${ARGS[@]}" 2> ppa-audit.log)
+          LEGS=$(jq -cn --arg o "$OWNERS" '[
+              {owner: "duxlabs", suffix: "", ppa: "dux-repo"},
+              {owner: "avengemedia", suffix: "_LEGACY", ppa: "danklinux"}
+            ] | map(select($o == "all" or .owner == $o))
+            | if length == 0 then error("unknown owner: \($o)") else . end')
+
+          # Planned per owner: an empty new PPA needs everything, the old one may need nothing
+          TARGETS_JSON='[]'
+          : > ppa-audit.log
+          while read -r LEG; do
+            OWNER=$(jq -r .owner <<< "$LEG")
+            PPA=$(jq -r .ppa <<< "$LEG")
+            echo "~$OWNER/$PPA:" >> ppa-audit.log
+            PLAN=$(PPA_OWNER="$OWNER" PPA_NAME="$PPA" distro/scripts/ppa/ppa-sync-plan.sh "${ARGS[@]}" 2>> ppa-audit.log)
+            TARGETS_JSON=$(jq -c --argjson leg "$LEG" --argjson p "$PLAN" '. + [$p[] | $leg + {target: .}]' <<< "$TARGETS_JSON")
+          done < <(jq -c '.[]' <<< "$LEGS")
           cat ppa-audit.log
 
-          TARGETS=$(echo "$TARGETS_JSON" | jq -r 'join(" ")')
+          TARGETS=$(jq -r 'map(.owner + ":" + .target) | join(" ")' <<< "$TARGETS_JSON")
           if [[ "$TARGETS_JSON" != "[]" ]]; then
             echo "has_updates=true" >> "$GITHUB_OUTPUT"
             echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
@@ -115,7 +139,7 @@ jobs:
           fi
 
   upload-ppa:
-    name: Upload ${{ matrix.target }}
+    name: Upload ${{ matrix.owner }} ${{ matrix.target }}
     needs: check-updates
     runs-on: ubuntu-latest
     if: github.repository_owner == 'duxlabs-dev' && needs.check-updates.outputs.has_updates == 'true'
@@ -123,9 +147,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJson(needs.check-updates.outputs.targets_json) }}
+        include: ${{ fromJson(needs.check-updates.outputs.targets_json) }}
     concurrency:
-      group: ppa-danklinux-${{ matrix.target }}
+      group: ppa-danklinux-${{ matrix.owner }}-${{ matrix.target }}
       cancel-in-progress: false
 
     steps:
@@ -154,8 +178,9 @@ jobs:
 
       - name: Configure GPG
         env:
-          GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_KEY: ${{ secrets[format('GPG_PRIVATE_KEY{0}', matrix.suffix)] }}
         run: |
+          : "${GPG_KEY:?GPG_PRIVATE_KEY${{ matrix.suffix }} secret not set}"
           echo "$GPG_KEY" | gpg --import
           GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2)
           echo "DEBSIGN_KEYID=$GPG_KEY_ID" >> "$GITHUB_ENV"
@@ -163,20 +188,25 @@ jobs:
       - name: Upload target
         env:
           TARGET: ${{ matrix.target }}
-          LAUNCHPAD_SSH_PRIVATE_KEY: ${{ secrets.LAUNCHPAD_SSH_PRIVATE_KEY }}
-          LAUNCHPAD_SSH_LOGIN: ${{ secrets.LAUNCHPAD_SSH_LOGIN }}
+          PPA_OWNER: ${{ matrix.owner }}
+          PPA_NAME: ${{ matrix.ppa }}
+          LAUNCHPAD_SSH_PRIVATE_KEY: ${{ secrets[format('LAUNCHPAD_SSH_PRIVATE_KEY{0}', matrix.suffix)] }}
+          LAUNCHPAD_SSH_LOGIN: ${{ secrets[format('LAUNCHPAD_SSH_LOGIN{0}', matrix.suffix)] }}
         run: |
+          : "${LAUNCHPAD_SSH_PRIVATE_KEY:?LAUNCHPAD_SSH_PRIVATE_KEY${{ matrix.suffix }} secret not set}"
+          : "${LAUNCHPAD_SSH_LOGIN:?LAUNCHPAD_SSH_LOGIN${{ matrix.suffix }} secret not set}"
           IFS=':' read -r PACKAGE UBUNTU_SERIES PPA_NUM <<< "$TARGET"
 
-          echo "Uploading $PACKAGE to $UBUNTU_SERIES with ppa$PPA_NUM"
-          bash distro/scripts/ppa/ppa-upload.sh "$PACKAGE" danklinux "$UBUNTU_SERIES" "$PPA_NUM"
+          echo "Uploading $PACKAGE to ~$PPA_OWNER/$PPA_NAME $UBUNTU_SERIES with ppa$PPA_NUM"
+          bash distro/scripts/ppa/ppa-upload.sh "$PACKAGE" "$PPA_NAME" "$UBUNTU_SERIES" "$PPA_NUM"
 
       - name: Summary
         if: always()
         run: |
           echo "### PPA Package Upload" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Owner:** ${{ matrix.owner }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Target:** ${{ matrix.target }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **PPA:** https://launchpad.net/~avengemedia/+archive/ubuntu/danklinux/+packages" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **PPA:** https://launchpad.net/~${{ matrix.owner }}/+archive/ubuntu/${{ matrix.ppa }}/+packages" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Launchpad build state is checked separately after upload." >> "$GITHUB_STEP_SUMMARY"

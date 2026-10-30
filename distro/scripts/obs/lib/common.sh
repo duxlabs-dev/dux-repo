@@ -39,6 +39,9 @@ TEMP_DIR=""
 readonly CACHE_DIR="$HOME/.cache/obs-automation"
 readonly CACHE_TTL=900  # 15 minutes
 
+# Still the legacy default: no home:duxlabs OBS projects exist yet.
+OBS_PROJECT="${OBS_PROJECT:-home:AvengeMedia:danklinux}"
+
 # Logging functions
 log_debug() {
     if [[ "${DEBUG:-false}" == "true" ]]; then

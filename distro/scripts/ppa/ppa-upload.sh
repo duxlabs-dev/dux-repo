@@ -7,11 +7,11 @@
 #   ./ppa-upload.sh                           # Interactive menu
 #   ./ppa-upload.sh ghostty                   # Single package → resolute + stonking
 #   ./ppa-upload.sh ghostty 8                 # Native: resolute ppa8, stonking ppa9 (auto +1)
-#   ./ppa-upload.sh ghostty stonking          # 26.10 only (no need to repeat "danklinux")
+#   ./ppa-upload.sh ghostty stonking          # 26.10 only (no need to repeat "dux-repo")
 #   ./ppa-upload.sh all                       # All packages (each → both series)
 #   ./ppa-upload.sh all stonking 2            # All packages, stonking only, ppa2 rebuild
-#   ./ppa-upload.sh ghostty danklinux stonking --build-only   # Explicit PPA + one series
-#   ./ppa-upload.sh ghostty danklinux resolute --build-only
+#   ./ppa-upload.sh ghostty dux-repo stonking --build-only   # Explicit PPA + one series
+#   ./ppa-upload.sh ghostty dux-repo resolute --build-only
 #   ./ppa-upload.sh niri-git 2                # Rebuild with ppa2 on both series
 #   ./ppa-upload.sh niri-git --rebuild=2      # Rebuild with ppa2 (flag syntax)
 
@@ -67,7 +67,9 @@ fi
 TEMP_DIR=$(mktemp -d "$TEMP_BASE/ppa_build_XXXXXX")
 trap "rm -rf $TEMP_DIR" EXIT
 
-AVAILABLE_PACKAGES=(cpptrace cliphist danksearch dgop ghostty matugen niri niri-git quickshell quickshell-git xwayland-satellite xwayland-satellite-git dankcalendar dankcalendar-git dux-files dux-files-git dms-greeter dms-greeter-git)
+AVAILABLE_PACKAGES=(cpptrace danksearch dgop ghostty matugen niri niri-git quickshell quickshell-git xwayland-satellite xwayland-satellite-git dankcalendar dankcalendar-git dux-files dux-files-git dms-greeter dms-greeter-git)
+export PPA_OWNER="${PPA_OWNER:-duxlabs}"
+DEFAULT_PPA_NAME="${PPA_NAME:-dux-repo}"
 KEEP_BUILDS=false
 BUILD_ONLY=false
 REBUILD_RELEASE=""
@@ -96,7 +98,7 @@ for arg in "$@"; do
 done
 
 PACKAGE="${POSITIONAL_ARGS[0]:-}"
-PPA_NAME="${POSITIONAL_ARGS[1]:-danklinux}"
+PPA_NAME="${POSITIONAL_ARGS[1]:-$DEFAULT_PPA_NAME}"
 UBUNTU_SERIES_RAW="${POSITIONAL_ARGS[2]:-}"
 
 # Check if last positional argument is a number (rebuild release)
@@ -110,15 +112,15 @@ if [[ ${#POSITIONAL_ARGS[@]} -gt 0 ]]; then
         POSITIONAL_ARGS=("${POSITIONAL_ARGS[@]:0:$LAST_INDEX}")
         # Re-assign variables after slicing array
         PACKAGE="${POSITIONAL_ARGS[0]:-}"
-        PPA_NAME="${POSITIONAL_ARGS[1]:-danklinux}"
+        PPA_NAME="${POSITIONAL_ARGS[1]:-$DEFAULT_PPA_NAME}"
         UBUNTU_SERIES_RAW="${POSITIONAL_ARGS[2]:-}"
     fi
 fi
 
-# Shorthand: "ghostty stonking" (package + series; PPA defaults to danklinux)
+# Shorthand: "ghostty stonking" (package + series; PPA defaults to $PPA_NAME or dux-repo)
 if [[ ${#POSITIONAL_ARGS[@]} -eq 2 ]] && [[ "${POSITIONAL_ARGS[1]}" == "resolute" || "${POSITIONAL_ARGS[1]}" == "stonking" ]]; then
     PACKAGE="${POSITIONAL_ARGS[0]}"
-    PPA_NAME="danklinux"
+    PPA_NAME="$DEFAULT_PPA_NAME"
     UBUNTU_SERIES_RAW="${POSITIONAL_ARGS[1]}"
 fi
 
@@ -275,13 +277,13 @@ setup_launchpad_sftp() {
     if [[ -z "${LAUNCHPAD_SSH_PRIVATE_KEY:-}" ]]; then
         error "LAUNCHPAD_SSH_PRIVATE_KEY is required for CI SFTP uploads."
         error "Add a GitHub Actions secret containing a private SSH key whose public key is registered in Launchpad."
-        error "Optional: set LAUNCHPAD_SSH_LOGIN if the Launchpad login is not 'avengemedia'."
+        error "Optional: set LAUNCHPAD_SSH_LOGIN if the Launchpad login is not 'duxlabs-dev'."
         exit 1
     fi
 
     local ssh_dir="$HOME/.ssh"
     local key_file="$ssh_dir/launchpad_ppa"
-    local login="${LAUNCHPAD_SSH_LOGIN:-avengemedia}"
+    local login="${LAUNCHPAD_SSH_LOGIN:-duxlabs-dev}"
 
     mkdir -p "$ssh_dir"
     chmod 700 "$ssh_dir"
@@ -420,7 +422,14 @@ cd "$BUILD_DIR"
 get_latest_tag() {
     local repo="$1"
     if command -v curl &> /dev/null; then
-        LATEST_TAG=$(curl -s "https://api.github.com/repos/$repo/releases/latest" 2>/dev/null | grep '"tag_name":' | sed 's/.*"tag_name": "\(.*\)".*/\1/' | head -1)
+        # A transient API miss would fall through to the changelog's stale version
+        local auth=() attempt
+        [ -n "${GITHUB_TOKEN:-}" ] && auth=(-H "Authorization: token $GITHUB_TOKEN")
+        for attempt in 1 2 3; do
+            LATEST_TAG=$(curl -sL "${auth[@]}" "https://api.github.com/repos/$repo/releases/latest" 2>/dev/null | grep '"tag_name":' | sed 's/.*"tag_name": "\(.*\)".*/\1/' | head -1)
+            [ -n "$LATEST_TAG" ] && break
+            sleep 2
+        done
         if [ -n "$LATEST_TAG" ]; then
             echo "$LATEST_TAG" | sed 's/^v//'
             return
@@ -512,9 +521,6 @@ case "$PACKAGE_NAME" in
         GIT_REPO="duxlabs-dev/dux-greeter"
         SOURCE_DIR="dms-greeter-git-source"
         NO_LINTIAN="true"
-        ;;
-    cliphist)
-        GIT_REPO="sentriz/cliphist"
         ;;
     dgop)
         # dgop uses pre-built binary from releases
@@ -1186,37 +1192,6 @@ case "$PACKAGE_NAME" in
             fi
         fi
         ;;
-    cliphist)
-        info "Preparing cliphist source with vendored dependencies..."
-        # Get version from changelog (remove ppa suffix for both quilt and native formats)
-        # Native: 0.5.2ppa1 -> 0.5.2, Quilt: 0.5.2-1ppa1 -> 0.5.2
-        VERSION=$(dpkg-parsechangelog -S Version | sed 's/-[^-]*$//' | sed 's/ppa[0-9]*$//')
-
-        # Download and vendor Go dependencies (Launchpad has no internet access)
-        if [ ! -f "cliphist.tar.gz" ] || [ ! -d "cliphist-${VERSION}/vendor" ]; then
-            info "Downloading cliphist source tarball v${VERSION}..."
-            wget -O cliphist-download.tar.gz "https://github.com/sentriz/cliphist/archive/refs/tags/v${VERSION}.tar.gz"
-
-            info "Extracting and vendoring Go dependencies..."
-            rm -rf cliphist-${VERSION}
-            tar -xzf cliphist-download.tar.gz
-            rm -f cliphist-download.tar.gz
-
-            cd cliphist-${VERSION}
-            if [ -f go.mod ]; then
-                go mod download
-                go mod vendor
-                success "Go dependencies vendored"
-            fi
-            cd ..
-
-            # Repackage with vendor directory
-            tar -czf cliphist.tar.gz cliphist-${VERSION}
-            success "Source tarball created with vendored dependencies"
-        else
-            info "Vendored source tarball already exists"
-        fi
-        ;;
     matugen)
         info "Downloading pre-built binaries and source for matugen..."
         # Get version from changelog (remove ppa suffix for both quilt and native formats)
@@ -1398,7 +1373,7 @@ EOF
 
             if [ ! -d "quickshell-source" ]; then
                 info "Downloading quickshell from snapshot/short commit ${PINNED_COMMIT}..."
-                FULL_COMMIT_HASH=$(curl -s "https://api.github.com/repos/quickshell-mirror/quickshell/commits/${PINNED_COMMIT}" | grep '"sha":' | head -1 | sed 's/.*"sha": "\(.*\)".*/\1/')
+                FULL_COMMIT_HASH=$(curl -sL "https://api.github.com/repos/quickshell-mirror/quickshell/commits/${PINNED_COMMIT}" | grep '"sha":' | head -1 | sed 's/.*"sha": "\(.*\)".*/\1/')
                 if [ -z "$FULL_COMMIT_HASH" ]; then
                     error "Failed to get full commit hash for $PINNED_COMMIT"
                     exit 1
@@ -1494,7 +1469,7 @@ esac
 # Check if this version already exists on PPA for this Ubuntu series only (only in CI environment)
 if command -v rmadison >/dev/null 2>&1; then
     info "Checking if version already exists on PPA (series $UBUNTU_SERIES)..."
-    PPA_VERSION_CHECK=$(rmadison -u ppa:avengemedia/danklinux "$PACKAGE_NAME" 2>/dev/null | grep "$UBUNTU_SERIES" | grep "$VERSION" || true)
+    PPA_VERSION_CHECK=$(rmadison -u "ppa:${PPA_OWNER}/${PPA_NAME}" "$PACKAGE_NAME" 2>/dev/null | grep "$UBUNTU_SERIES" | grep "$VERSION" || true)
     if [ -n "$PPA_VERSION_CHECK" ]; then
         warn "Version $VERSION already exists on PPA:"
         echo "$PPA_VERSION_CHECK"
@@ -1531,7 +1506,7 @@ if [ "${NO_LINTIAN:-false}" = "true" ]; then
 fi
 
 # Use -S for source only, -sa/-sd for source inclusion
-if yes | DEBIAN_FRONTEND=noninteractive debuild $DEBUILD_LINTIAN_FLAG -S $DEBUILD_SOURCE_FLAG -d; then
+if yes | DEBIAN_FRONTEND=noninteractive debuild $DEBUILD_LINTIAN_FLAG -S $DEBUILD_SOURCE_FLAG -d ${DEBSIGN_KEYID:+-k"$DEBSIGN_KEYID"}; then
     echo
     success "Source package built successfully!"
 
@@ -1577,7 +1552,7 @@ if yes | DEBIAN_FRONTEND=noninteractive debuild $DEBUILD_LINTIAN_FLAG -S $DEBUIL
     # Upload to PPA (unless --build-only)
     if [ "$BUILD_ONLY" = "false" ]; then
         echo
-        info "==> Uploading to PPA: ppa:avengemedia/$PPA_NAME"
+        info "==> Uploading to PPA: ppa:${PPA_OWNER}/$PPA_NAME"
         
         # Get file paths
         CHANGES_BASENAME=$(basename "$CHANGES_FILE")
@@ -1618,20 +1593,20 @@ if yes | DEBIAN_FRONTEND=noninteractive debuild $DEBUILD_LINTIAN_FLAG -S $DEBUIL
             setup_launchpad_sftp
             DPUT_CONFIG=$(mktemp "$TEMP_BASE/ppa_dput_XXXXXX")
             cat >"$DPUT_CONFIG" <<EOF
-[avengemedia-${PPA_NAME}]
+[${PPA_OWNER}-${PPA_NAME}]
 fqdn = ppa.launchpad.net
 method = sftp
-incoming = ~avengemedia/ubuntu/${PPA_NAME}/
-login = ${LAUNCHPAD_SSH_LOGIN:-avengemedia}
+incoming = ~${PPA_OWNER}/ubuntu/${PPA_NAME}/
+login = ${LAUNCHPAD_SSH_LOGIN:-duxlabs-dev}
 allow_unsigned_uploads = 0
 EOF
 
             info "Using dput for CI upload (SFTP)"
-            if dput -c "$DPUT_CONFIG" "avengemedia-${PPA_NAME}" "$CHANGES_FILE"; then
+            if dput -c "$DPUT_CONFIG" "${PPA_OWNER}-${PPA_NAME}" "$CHANGES_FILE"; then
                 echo
                 success "Upload successful!"
                 info "Monitor build progress at:"
-                echo "  https://launchpad.net/~avengemedia/+archive/ubuntu/$PPA_NAME/+packages"
+                echo "  https://launchpad.net/~${PPA_OWNER}/+archive/ubuntu/$PPA_NAME/+packages"
                 rm -f "$DPUT_CONFIG"
             else
                 rm -f "$DPUT_CONFIG"
@@ -1644,7 +1619,7 @@ EOF
             LFTP_SCRIPT=$(mktemp "$TEMP_BASE/ppa_lftp_XXXXXX")
         
             # Build upload commands
-            UPLOAD_COMMANDS="cd ~avengemedia/ubuntu/$PPA_NAME/
+            UPLOAD_COMMANDS="cd ~${PPA_OWNER}/ubuntu/$PPA_NAME/
 lcd $TEMP_DIR
 mput $UPLOAD_TARBALL
 mput $DSC_FILE"
@@ -1666,7 +1641,7 @@ bye"
                 echo
                 success "Upload successful!"
                 info "Monitor build progress at:"
-                echo "  https://launchpad.net/~avengemedia/+archive/ubuntu/$PPA_NAME/+packages"
+                echo "  https://launchpad.net/~${PPA_OWNER}/+archive/ubuntu/$PPA_NAME/+packages"
             else
                 rm -f "$LFTP_SCRIPT"
                 error "Upload failed!"

@@ -75,26 +75,29 @@ jobs:
           done
           exit 1
 
-      - name: Configure COPR
-        if: steps.check.outputs.bumped == 'true'
-        env:
-          COPR_CONFIG: ${{ secrets.COPR_CONFIG }}
-        run: |
-          if [[ -z "$COPR_CONFIG" ]]; then
-            echo "::error::COPR_CONFIG secret not set"
-            exit 1
-          fi
-          mkdir -p ~/.config
-          echo "$COPR_CONFIG" > ~/.config/copr
-          chmod 600 ~/.config/copr
-
+      # Owners run in sequence; each pass rewrites ~/.config/copr before its trigger
       - name: Trigger COPR builds
         if: steps.check.outputs.bumped == 'true'
         env:
           COPR_CHROOTS: ${{ steps.check.outputs.chroots }}
+          COPR_CONFIG_DUXLABS: ${{ secrets.COPR_CONFIG }}
+          COPR_CONFIG_AVENGEMEDIA: ${{ secrets.COPR_CONFIG_LEGACY }}
         run: |
           chmod +x distro/scripts/copr/copr-trigger.sh
-          distro/scripts/copr/copr-trigger.sh
+          mkdir -p ~/.config
+          rc=0
+          for leg in duxlabs:dux-repo:COPR_CONFIG_DUXLABS avengemedia:danklinux:COPR_CONFIG_AVENGEMEDIA; do
+            IFS=: read -r owner project cfg <<< "$leg"
+            if [[ -z "${!cfg}" ]]; then
+              echo "::error::COPR config secret for $owner not set"
+              rc=1
+              continue
+            fi
+            printf '%s\n' "${!cfg}" > ~/.config/copr
+            chmod 600 ~/.config/copr
+            COPR_OWNER=$owner COPR_PROJECT=$project distro/scripts/copr/copr-trigger.sh || rc=1
+          done
+          exit $rc
 
       - name: Summary
         if: steps.check.outputs.bumped == 'true'
@@ -108,5 +111,7 @@ jobs:
             echo ""
             echo "Chroots: ${{ steps.check.outputs.chroots }}"
             echo ""
-            echo "[View builds](https://copr.fedorainfracloud.org/coprs/avengemedia/danklinux/builds/)"
+            for copr in duxlabs/dux-repo avengemedia/danklinux; do
+              echo "- [$copr builds](https://copr.fedorainfracloud.org/coprs/$copr/builds/)"
+            done
           } >> "$GITHUB_STEP_SUMMARY"

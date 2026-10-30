@@ -7,8 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 FETCH_VERSION="$SCRIPT_DIR/../common/fetch-version.sh"
 
-PPA_OWNER="avengemedia"
-PPA_NAME="danklinux"
+PPA_OWNER="${PPA_OWNER:-duxlabs}"
+PPA_NAME="${PPA_NAME:-dux-repo}"
 LAUNCHPAD_API="https://api.launchpad.net/1.0"
 SERIES_LIST=(resolute stonking)
 PACKAGE_FILTER="auto"
@@ -16,7 +16,6 @@ REBUILD_RELEASE=""
 JSON=false
 
 PACKAGES=(
-    "cliphist:sentriz/cliphist:release"
     "ghostty:ghostty-org/ghostty:release"
     "matugen:InioX/matugen:release"
     "niri:niri-wm/niri:release"

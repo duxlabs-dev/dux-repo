@@ -2,8 +2,8 @@
 # Trigger COPR builds for updated packages
 set -euo pipefail
 
-COPR_OWNER="avengemedia"
-COPR_PROJECT="danklinux"
+COPR_OWNER="${COPR_OWNER:-duxlabs}"
+COPR_PROJECT="${COPR_PROJECT:-dux-repo}"
 # The SCM default source method of the existing packages
 COPR_CLONE_URL="https://github.com/duxlabs-dev/dux-repo.git"
 
@@ -111,9 +111,7 @@ fi
 BUILD_QUICKSHELL=false
 BUILD_QUICKSHELL_GIT=false
 BUILD_DGOP=false
-BUILD_CLIPHIST=false
 BUILD_MATUGEN=false
-BUILD_BREAKPAD=false
 BUILD_GHOSTTY=false
 BUILD_MATERIAL_SYMBOLS=false
 BUILD_DANKSEARCH=false
@@ -124,6 +122,7 @@ BUILD_DUX_FILES_GIT=false
 BUILD_DMS_GREETER=false
 BUILD_DMS_GREETER_GIT=false
 BUILD_CLI11=false
+BUILD_CPPTRACE=false
 BUILD_QT6CT_KDE=false
 BUILD_GREETD=false
 BUILD_GTK4_LAYER_SHELL=false
@@ -137,9 +136,7 @@ if [[ "${FORCE_PACKAGE:-}" == "all" ]]; then
     BUILD_QUICKSHELL=true
     BUILD_QUICKSHELL_GIT=true
     BUILD_DGOP=true
-    BUILD_CLIPHIST=true
     BUILD_MATUGEN=true
-    BUILD_BREAKPAD=true
     BUILD_GHOSTTY=true
     BUILD_MATERIAL_SYMBOLS=true
     BUILD_DANKSEARCH=true
@@ -150,6 +147,7 @@ if [[ "${FORCE_PACKAGE:-}" == "all" ]]; then
     BUILD_DMS_GREETER=true
     BUILD_DMS_GREETER_GIT=true
     BUILD_CLI11=true
+    BUILD_CPPTRACE=true
     BUILD_QT6CT_KDE=true
     BUILD_GREETD=true
     BUILD_GTK4_LAYER_SHELL=true
@@ -171,16 +169,8 @@ if echo "$CHANGED_FILES" | grep -q "distro/fedora/dgop/dgop.spec"; then
     BUILD_DGOP=true
 fi
 
-if echo "$CHANGED_FILES" | grep -q "distro/fedora/cliphist/cliphist.spec"; then
-    BUILD_CLIPHIST=true
-fi
-
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/matugen/matugen.spec"; then
     BUILD_MATUGEN=true
-fi
-
-if echo "$CHANGED_FILES" | grep -q "distro/fedora/breakpad/breakpad.spec"; then
-    BUILD_BREAKPAD=true
 fi
 
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/ghostty/ghostty.spec"; then
@@ -222,7 +212,10 @@ if echo "$CHANGED_FILES" | grep -q "distro/fedora/dms-greeter/dms-greeter-git.sp
     BUILD_DMS_GREETER_GIT=true
 fi
 
-# New CLI11 package
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/cpptrace/cpptrace.spec"; then
+    BUILD_CPPTRACE=true
+fi
+
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/cli11/cli11.spec"; then
     BUILD_CLI11=true
 fi
@@ -259,9 +252,7 @@ if [[ -z "$CHANGED_FILES" ]]; then
     echo "$UNCOMMITTED" | grep -q "distro/fedora/quickshell/quickshell.spec" && BUILD_QUICKSHELL=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/quickshell/quickshell-git.spec" && BUILD_QUICKSHELL_GIT=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dgop/dgop.spec" && BUILD_DGOP=true
-    echo "$UNCOMMITTED" | grep -q "distro/fedora/cliphist/cliphist.spec" && BUILD_CLIPHIST=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/matugen/matugen.spec" && BUILD_MATUGEN=true
-    echo "$UNCOMMITTED" | grep -q "distro/fedora/breakpad/breakpad.spec" && BUILD_BREAKPAD=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/ghostty/ghostty.spec" && BUILD_GHOSTTY=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/fonts/material-symbols-fonts.spec" && BUILD_MATERIAL_SYMBOLS=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/danksearch/danksearch.spec" && BUILD_DANKSEARCH=true
@@ -274,6 +265,7 @@ if [[ -z "$CHANGED_FILES" ]]; then
 
     # New CLI11 package
     echo "$UNCOMMITTED" | grep -q "distro/fedora/cli11/cli11.spec" && BUILD_CLI11=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/cpptrace/cpptrace.spec" && BUILD_CPPTRACE=true
 
     echo "$UNCOMMITTED" | grep -q "distro/fedora/qt6ct-kde/qt6ct-kde.spec" && BUILD_QT6CT_KDE=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/greetd/greetd.spec" && BUILD_GREETD=true
@@ -298,16 +290,8 @@ if [[ "$BUILD_DGOP" == true ]] || [[ "$FORCE_PACKAGE" == "dgop" ]]; then
     trigger_build "dgop" "distro/fedora/dgop/dgop.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
 fi
 
-if [[ "$BUILD_CLIPHIST" == true ]] || [[ "$FORCE_PACKAGE" == "cliphist" ]]; then
-    trigger_build "cliphist" "distro/fedora/cliphist/cliphist.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
-fi
-
 if [[ "$BUILD_MATUGEN" == true ]] || [[ "$FORCE_PACKAGE" == "matugen" ]]; then
     trigger_build "matugen" "distro/fedora/matugen/matugen.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
-fi
-
-if [[ "$BUILD_BREAKPAD" == true ]] || [[ "$FORCE_PACKAGE" == "breakpad" ]]; then
-    trigger_build "breakpad" "distro/fedora/breakpad/breakpad.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
 fi
 
 if [[ "$BUILD_GHOSTTY" == true ]] || [[ "$FORCE_PACKAGE" == "ghostty" ]]; then
@@ -348,6 +332,10 @@ fi
 
 if [[ "$BUILD_CLI11" == true ]] || [[ "$FORCE_PACKAGE" == "cli11" ]]; then
     trigger_build "cli11" "distro/fedora/cli11/cli11.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
+if [[ "$BUILD_CPPTRACE" == true ]] || [[ "$FORCE_PACKAGE" == "cpptrace" ]]; then
+    trigger_build "cpptrace" "distro/fedora/cpptrace/cpptrace.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
 fi
 
 if [[ "$BUILD_QT6CT_KDE" == true ]] || [[ "$FORCE_PACKAGE" == "qt6ct-kde" ]]; then

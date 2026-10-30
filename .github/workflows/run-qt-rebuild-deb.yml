@@ -4,6 +4,16 @@ on:
   schedule:
     - cron: '37 * * * *'
   workflow_dispatch:
+    inputs:
+      owners:
+        description: 'OBS owners to rebuild on'
+        required: false
+        type: choice
+        options:
+          - all
+          - duxlabs
+          - avengemedia
+        default: all
 
 concurrency:
   group: qt-rebuild-deb
@@ -17,6 +27,7 @@ jobs:
       contents: write
     outputs:
       obs_plan: ${{ steps.check.outputs.obs_plan }}
+      obs_matrix: ${{ steps.obs_owners.outputs.matrix }}
       ppa_plan: ${{ steps.check.outputs.ppa_plan }}
       summary: ${{ steps.check.outputs.summary }}
 
@@ -38,9 +49,26 @@ jobs:
 
       - name: Check qt6 versions
         id: check
+        env:
+          PPA_ARCHIVES: duxlabs/dux-repo avengemedia/danklinux
         run: |
           chmod +x distro/scripts/qt/qt-rebuild-deb-check.sh
           distro/scripts/qt/qt-rebuild-deb-check.sh
+
+      - name: Plan OBS owners
+        id: obs_owners
+        env:
+          OBS_PLAN: ${{ steps.check.outputs.obs_plan || '[]' }}
+          # duxlabs is dispatch-only until its OBS account exists; drop this gate then
+          OWNERS: ${{ github.event_name == 'workflow_dispatch' && inputs.owners || 'avengemedia' }}
+        run: |
+          MATRIX=$(jq -cn --arg o "$OWNERS" --argjson plan "$OBS_PLAN" '[
+              {owner: "duxlabs", suffix: "", project: "home:duxlabs:dux-repo"},
+              {owner: "avengemedia", suffix: "_LEGACY", project: "home:AvengeMedia:danklinux"}
+            ] | map(select($o == "all" or .owner == $o))
+            | if length == 0 then error("unknown owner: \($o)") else . end
+            | {include: [$plan[] as $item | .[] | . + {item: $item}]}')
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
 
       - name: Commit baseline
         if: steps.check.outputs.dirty == 'true'
@@ -63,7 +91,7 @@ jobs:
           exit 1
 
   obs-rebuild:
-    name: OBS ${{ matrix.item.package }} .db${{ matrix.item.rebuild }}
+    name: OBS ${{ matrix.owner }} ${{ matrix.item.package }} .db${{ matrix.item.rebuild }}
     needs: check
     if: needs.check.outputs.obs_plan != '[]'
     runs-on: ubuntu-latest
@@ -71,8 +99,9 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 1
-      matrix:
-        item: ${{ fromJson(needs.check.outputs.obs_plan) }}
+      matrix: ${{ fromJson(needs.check.outputs.obs_matrix) }}
+    env:
+      OBS_PROJECT: ${{ matrix.project }}
 
     steps:
       - name: Checkout repository
@@ -81,21 +110,19 @@ jobs:
           fetch-depth: 0
 
       - name: Install system dependencies
+        env:
+          OBS_USERNAME: ${{ secrets[format('OBS_USERNAME{0}', matrix.suffix)] }}
+          OBS_PASSWORD: ${{ secrets[format('OBS_PASSWORD{0}', matrix.suffix)] }}
         run: |
+          : "${OBS_USERNAME:?OBS_USERNAME${{ matrix.suffix }} secret not set}" "${OBS_PASSWORD:?OBS_PASSWORD${{ matrix.suffix }} secret not set}"
           sudo apt-get update
           sudo apt-get install -y osc jq curl dpkg-dev debhelper libglib2.0-dev
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
           mkdir -p ~/.config/osc
-          cat > ~/.config/osc/oscrc << EOF
-          [general]
-          apiurl = https://api.opensuse.org
-
-          [https://api.opensuse.org]
-          user = ${{ secrets.OBS_USERNAME }}
-          pass = ${{ secrets.OBS_PASSWORD }}
-          EOF
-          chmod 600 ~/.config/osc/oscrc
+          umask 077
+          printf '[general]\napiurl = https://api.opensuse.org\n\n[https://api.opensuse.org]\nuser = %s\npass = %s\n' \
+            "$OBS_USERNAME" "$OBS_PASSWORD" > ~/.config/osc/oscrc
 
       - name: Test OBS authentication
         run: |
@@ -107,8 +134,8 @@ jobs:
       - name: Rebuild on OBS (debian only)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OBS_USERNAME: ${{ secrets.OBS_USERNAME }}
-          OBS_PASSWORD: ${{ secrets.OBS_PASSWORD }}
+          OBS_USERNAME: ${{ secrets[format('OBS_USERNAME{0}', matrix.suffix)] }}
+          OBS_PASSWORD: ${{ secrets[format('OBS_PASSWORD{0}', matrix.suffix)] }}
           PACKAGE: ${{ matrix.item.package }}
           REBUILD_NUMBER: ${{ matrix.item.rebuild }}
           SUMMARY: ${{ needs.check.outputs.summary }}
@@ -121,14 +148,14 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: obs-build-logs-${{ matrix.item.package }}
+          name: obs-build-logs-${{ matrix.owner }}-${{ matrix.item.package }}
           path: |
             /tmp/obs-build-*/build.log
             /tmp/osc-*.log
           retention-days: 7
 
   ppa-rebuild:
-    name: PPA ${{ matrix.target }}
+    name: PPA ${{ matrix.owner }} ${{ matrix.target }}
     needs: check
     if: needs.check.outputs.ppa_plan != '[]'
     runs-on: ubuntu-latest
@@ -137,8 +164,12 @@ jobs:
       fail-fast: false
       matrix:
         target: ${{ fromJson(needs.check.outputs.ppa_plan) }}
+        owner: [duxlabs, avengemedia]
+        include:
+          - {owner: duxlabs, suffix: '', ppa: dux-repo}
+          - {owner: avengemedia, suffix: _LEGACY, ppa: danklinux}
     concurrency:
-      group: ppa-danklinux-${{ matrix.target }}
+      group: ppa-danklinux-${{ matrix.owner }}-${{ matrix.target }}
       cancel-in-progress: false
 
     steps:
@@ -167,8 +198,9 @@ jobs:
 
       - name: Configure GPG
         env:
-          GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_KEY: ${{ secrets[format('GPG_PRIVATE_KEY{0}', matrix.suffix)] }}
         run: |
+          : "${GPG_KEY:?GPG_PRIVATE_KEY${{ matrix.suffix }} secret not set}"
           echo "$GPG_KEY" | gpg --import
           GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2)
           echo "DEBSIGN_KEYID=$GPG_KEY_ID" >> "$GITHUB_ENV"
@@ -176,12 +208,16 @@ jobs:
       - name: Upload target
         env:
           TARGET: ${{ matrix.target }}
-          LAUNCHPAD_SSH_PRIVATE_KEY: ${{ secrets.LAUNCHPAD_SSH_PRIVATE_KEY }}
-          LAUNCHPAD_SSH_LOGIN: ${{ secrets.LAUNCHPAD_SSH_LOGIN }}
+          PPA_OWNER: ${{ matrix.owner }}
+          PPA_NAME: ${{ matrix.ppa }}
+          LAUNCHPAD_SSH_PRIVATE_KEY: ${{ secrets[format('LAUNCHPAD_SSH_PRIVATE_KEY{0}', matrix.suffix)] }}
+          LAUNCHPAD_SSH_LOGIN: ${{ secrets[format('LAUNCHPAD_SSH_LOGIN{0}', matrix.suffix)] }}
         run: |
+          : "${LAUNCHPAD_SSH_PRIVATE_KEY:?LAUNCHPAD_SSH_PRIVATE_KEY${{ matrix.suffix }} secret not set}"
+          : "${LAUNCHPAD_SSH_LOGIN:?LAUNCHPAD_SSH_LOGIN${{ matrix.suffix }} secret not set}"
           IFS=':' read -r PACKAGE UBUNTU_SERIES PPA_NUM <<< "$TARGET"
-          echo "Uploading $PACKAGE to $UBUNTU_SERIES with ppa$PPA_NUM"
-          bash distro/scripts/ppa/ppa-upload.sh "$PACKAGE" danklinux "$UBUNTU_SERIES" "$PPA_NUM"
+          echo "Uploading $PACKAGE to ~$PPA_OWNER/$PPA_NAME $UBUNTU_SERIES with ppa$PPA_NUM"
+          bash distro/scripts/ppa/ppa-upload.sh "$PACKAGE" "$PPA_NAME" "$UBUNTU_SERIES" "$PPA_NUM"
 
   summary:
     name: Summary

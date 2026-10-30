@@ -8,8 +8,10 @@ cd "$REPO_ROOT"
 
 OBS_REPO_BASE="${OBS_REPO_BASE:-https://download.opensuse.org/repositories/home:/AvengeMedia:/danklinux}"
 OBS_DEB_REPOS="${OBS_DEB_REPOS:-Debian_Unstable Debian_Testing Debian_13}"
-PPA_OWNER="${PPA_OWNER:-avengemedia}"
-PPA_NAME="${PPA_NAME:-danklinux}"
+PPA_OWNER="${PPA_OWNER:-duxlabs}"
+PPA_NAME="${PPA_NAME:-dux-repo}"
+# One plan feeds every owner leg, so ppaN must be above what each of these archives holds
+PPA_ARCHIVES="${PPA_ARCHIVES:-$PPA_OWNER/$PPA_NAME}"
 PPA_SERIES="${PPA_SERIES:-resolute stonking}"
 LAUNCHPAD_API="${LAUNCHPAD_API:-https://api.launchpad.net/1.0}"
 QT_DEB_PACKAGES="${QT_DEB_PACKAGES:-quickshell quickshell-git}"
@@ -19,6 +21,7 @@ GITHUB_OUTPUT="${GITHUB_OUTPUT:-/dev/null}"
 read -ra OBS_REPOS <<<"$OBS_DEB_REPOS"
 read -ra SERIES <<<"$PPA_SERIES"
 read -ra PACKAGES <<<"$QT_DEB_PACKAGES"
+read -ra ARCHIVES <<<"$PPA_ARCHIVES"
 
 for tool in curl jq dpkg; do
     if ! command -v "$tool" >/dev/null; then
@@ -80,8 +83,8 @@ archive_qt6_base() {
 }
 
 ppa_published() {
-    local pkg="$1" series="$2"
-    launchpad_versions "$LAUNCHPAD_API/~$PPA_OWNER/+archive/ubuntu/$PPA_NAME?ws.op=getPublishedSources&source_name=$pkg&exact_match=true&status=Published&distro_series=$LAUNCHPAD_API/ubuntu/$series" | head -1
+    local archive="$1" pkg="$2" series="$3"
+    launchpad_versions "$LAUNCHPAD_API/~${archive%%/*}/+archive/ubuntu/${archive#*/}?ws.op=getPublishedSources&source_name=$pkg&exact_match=true&status=Published&distro_series=$LAUNCHPAD_API/ubuntu/$series" | head -1
 }
 
 BASELINE='{}'
@@ -165,9 +168,11 @@ PPA_PLAN='[]'
 if ((${#PPA_REBUILD[@]})); then
     for pkg in "${PACKAGES[@]}"; do
         max=0
-        for series in "${SERIES[@]}"; do
-            n=$(ppa_suffix "$(ppa_published "$pkg" "$series")")
-            (( n > max )) && max=$n
+        for archive in "${ARCHIVES[@]}"; do
+            for series in "${SERIES[@]}"; do
+                n=$(ppa_suffix "$(ppa_published "$archive" "$pkg" "$series")")
+                (( n > max )) && max=$n
+            done
         done
         next=$((max + 1))
         for series in "${SERIES[@]}"; do
