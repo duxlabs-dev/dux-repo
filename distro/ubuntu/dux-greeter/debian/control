@@ -1,0 +1,40 @@
+Source: dux-greeter
+Section: x11
+Priority: optional
+Maintainer: Avenge Media <AvengeMedia.US@gmail.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Homepage: https://github.com/duxlabs-dev/dux-greeter
+Vcs-Browser: https://github.com/duxlabs-dev/dux-greeter
+Vcs-Git: https://github.com/duxlabs-dev/dux-greeter.git
+
+Package: dux-greeter
+Architecture: amd64 arm64
+Depends: ${misc:Depends},
+  greetd,
+  quickshell-git | quickshell
+Suggests: niri | hyprland | sway
+Conflicts: dux-greeter-git,
+           dms-greeter-git (<< 1:2.0.0+git109.6cc8351ppa3)
+Breaks: dms-greeter (<< 1:2.0.0ppa3)
+Replaces: dux-greeter-git,
+          dms-greeter (<< 1:2.0.0ppa3),
+          dms-greeter-git (<< 1:2.0.0+git109.6cc8351ppa3)
+Description: DMS Greeter for greetd
+ DMS Greeter is a greetd login screen with the Dux Shell aesthetic.
+ A single Go binary with the Quickshell UI embedded; the UI is extracted
+ to the greeter cache directory at startup.
+ .
+ Supports multiple compositors including Niri, Hyprland, and Sway with
+ session selection, user authentication, and dynamic theming synced from
+ Dux Shell.
+
+Package: dms-greeter
+Architecture: all
+Section: oldlibs
+Priority: optional
+Depends: ${misc:Depends},
+         dux-greeter (>= 1:2.0.0ppa3)
+Description: transitional package, safe to remove
+ dms-greeter has been renamed to dux-greeter.
+ This package pulls in dux-greeter and can be removed afterwards.

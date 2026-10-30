@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Stage and build Void XBPS packages dms-greeter / dms-greeter-git from a
-# dux-greeter checkout (--source-dir, submodule checked out) using this repo's templates.
+# Stage and build Void XBPS packages dux-greeter / dux-greeter-git (or the legacy
+# dms-greeter / dms-greeter-git) from a dux-greeter checkout (--source-dir, submodule
+# checked out) using this repo's templates.
 # Usage: void-build.sh <pkg> --source-dir=DIR [--version=X] [--force] [--smoke] [--void-packages=DIR]
+#        [--template-root=DIR]  (default distro/void/srcpkgs; legacy names: distro/void/legacy/srcpkgs)
 
 set -euo pipefail
 
 REPO="duxlabs-dev/dux-greeter"
-PACKAGE="dms-greeter-git"
+PACKAGE="dux-greeter-git"
 VERSION=""
 SMOKE=false
 FORCE_REBUILD=false
@@ -16,11 +18,11 @@ REPOSITORY_DIR="${REPOSITORY_DIR:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGING_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-TEMPLATE_ROOT="$PACKAGING_ROOT/distro/void/srcpkgs"
+TEMPLATE_ROOT="${TEMPLATE_ROOT:-$PACKAGING_ROOT/distro/void/srcpkgs}"
 
 for arg in "$@"; do
     case "$arg" in
-    dms-greeter|dms-greeter-git)
+    dux-greeter|dux-greeter-git|dms-greeter|dms-greeter-git)
         PACKAGE="$arg"
         ;;
     --smoke)
@@ -45,8 +47,12 @@ for arg in "$@"; do
         REPOSITORY_DIR="${arg#*=}"
         REPOSITORY_DIR="${REPOSITORY_DIR/#\~/$HOME}"
         ;;
+    --template-root=*)
+        TEMPLATE_ROOT="${arg#*=}"
+        TEMPLATE_ROOT="${TEMPLATE_ROOT/#\~/$HOME}"
+        ;;
     -h|--help)
-        sed -n '2,18p' "$0"
+        sed -n '2,6p' "$0"
         exit 0
         ;;
     *)
@@ -61,6 +67,11 @@ if [[ -z "$SOURCE_DIR" ]]; then
     exit 1
 fi
 SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
+if [[ ! -f "$TEMPLATE_ROOT/$PACKAGE/template" ]]; then
+    echo "ERROR: $TEMPLATE_ROOT/$PACKAGE/template not found" >&2
+    exit 1
+fi
+TEMPLATE_ROOT="$(cd "$TEMPLATE_ROOT" && pwd)"
 if [[ ! -d "$SOURCE_DIR/core" ]] || ! git -C "$SOURCE_DIR" rev-parse --is-inside-work-tree &>/dev/null; then
     echo "ERROR: $SOURCE_DIR does not look like a dux-greeter git checkout" >&2
     exit 1
@@ -178,7 +189,7 @@ run_sync_shell_smoke() {
 smoke_git() {
     local ver tarball extract
     ver="$(git_version)"
-    tarball="$(mktemp /tmp/dms-greeter-git-XXXXXX.tar.gz)"
+    tarball="$(mktemp "/tmp/${PACKAGE}-XXXXXX.tar.gz")"
     extract="$(mktemp -d)"
     trap 'rm -rf "'"$extract"'"; rm -f "'"$tarball"'"' EXIT
 
@@ -194,7 +205,7 @@ smoke_git() {
     fi
     run_sync_shell_smoke "$extract/core"
 
-    echo "==> Smoke OK: dms-greeter-git flat pack + sync-shell"
+    echo "==> Smoke OK: ${PACKAGE} flat pack + sync-shell"
     rm -rf "$extract"
     rm -f "$tarball"
     trap - EXIT
@@ -207,7 +218,7 @@ smoke_stable() {
         ver="$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || true)"
         [[ -z "$ver" ]] && ver="1.0.0"
     fi
-    tarball="$(mktemp /tmp/dms-greeter-XXXXXX.tar.gz)"
+    tarball="$(mktemp "/tmp/${PACKAGE}-XXXXXX.tar.gz")"
     extract="$(mktemp -d)"
     trap 'rm -rf "'"$extract"'"; rm -f "'"$tarball"'"' EXIT
 
@@ -223,7 +234,7 @@ smoke_stable() {
     fi
     run_sync_shell_smoke "$extract/dank-greeter-${ver}/core"
 
-    echo "==> Smoke OK: dms-greeter nested pack + sync-shell"
+    echo "==> Smoke OK: ${PACKAGE} nested pack + sync-shell"
     rm -rf "$extract"
     rm -f "$tarball"
     trap - EXIT
@@ -231,34 +242,34 @@ smoke_stable() {
 
 patch_git_template() {
     local void_pkgs="$1" ver="$2" tarball="$3" checksum
+    local tmpl="$void_pkgs/srcpkgs/${PACKAGE}/template"
     checksum="$(sha256sum "$tarball" | cut -d' ' -f1)"
-    sed -i "s/^version=.*/version=${ver}/" "$void_pkgs/srcpkgs/dms-greeter-git/template"
-    sed -i "s/^checksum=.*/checksum=${checksum}/" "$void_pkgs/srcpkgs/dms-greeter-git/template"
-    sed -i "s|^distfiles=.*|distfiles=\"dms-greeter-git-${ver}.tar.gz\"|" \
-        "$void_pkgs/srcpkgs/dms-greeter-git/template"
+    sed -i "s/^version=.*/version=${ver}/" "$tmpl"
+    sed -i "s/^checksum=.*/checksum=${checksum}/" "$tmpl"
+    sed -i "s|^distfiles=.*|distfiles=\"${PACKAGE}-${ver}.tar.gz\"|" "$tmpl"
 }
 
 build_git_xbps() {
     local void_pkgs="$1"
     local ver tarball rev expected
     ver="$(git_version)"
-    echo "==> Preparing dms-greeter-git version $ver (from $(git rev-parse HEAD))"
+    echo "==> Preparing ${PACKAGE} version $ver (from $(git rev-parse HEAD))"
 
-    tarball="$void_pkgs/hostdir/sources/dms-greeter-git-${ver}/dms-greeter-git-${ver}.tar.gz"
+    tarball="$void_pkgs/hostdir/sources/${PACKAGE}-${ver}/${PACKAGE}-${ver}.tar.gz"
     mkdir -p "$(dirname "$tarball")"
     pack_git_source "$tarball"
     patch_git_template "$void_pkgs" "$ver" "$tarball"
 
-    rev="$(grep -E '^revision=' "$void_pkgs/srcpkgs/dms-greeter-git/template" | cut -d= -f2 | tr -d '"')"
-    expected="dms-greeter-git-${ver}_${rev}.x86_64.xbps"
+    rev="$(grep -E '^revision=' "$void_pkgs/srcpkgs/${PACKAGE}/template" | cut -d= -f2 | tr -d '"')"
+    expected="${PACKAGE}-${ver}_${rev}.x86_64.xbps"
 
     if [[ -n "$REPOSITORY_DIR" ]] && [[ -f "$REPOSITORY_DIR/current/$expected" ]] && [[ "$FORCE_REBUILD" != true ]]; then
         echo "✅ $expected already exists, skipping build."
         return 0
     fi
 
-    echo "🔨 Compiling dms-greeter-git via xbps-src..."
-    (cd "$void_pkgs" && ./xbps-src pkg dms-greeter-git)
+    echo "🔨 Compiling ${PACKAGE} via xbps-src..."
+    (cd "$void_pkgs" && ./xbps-src pkg "$PACKAGE")
 
     if [[ -n "$REPOSITORY_DIR" ]]; then
         mkdir -p "$REPOSITORY_DIR/current"
@@ -280,10 +291,10 @@ build_stable_xbps() {
         exit 1
     fi
 
-    echo "==> Preparing dms-greeter version $ver"
+    echo "==> Preparing ${PACKAGE} version $ver"
     local tarball checksum rev expected
-    rev="$(grep -E '^revision=' "$void_pkgs/srcpkgs/dms-greeter/template" | cut -d= -f2 | tr -d '"')"
-    expected="dms-greeter-${ver}_${rev}.x86_64.xbps"
+    rev="$(grep -E '^revision=' "$void_pkgs/srcpkgs/${PACKAGE}/template" | cut -d= -f2 | tr -d '"')"
+    expected="${PACKAGE}-${ver}_${rev}.x86_64.xbps"
 
     if [[ -n "$REPOSITORY_DIR" ]] && [[ -f "$REPOSITORY_DIR/current/$expected" ]] && [[ "$FORCE_REBUILD" != true ]]; then
         echo "✅ $expected already exists, skipping build."
@@ -301,11 +312,11 @@ build_stable_xbps() {
     checksum="$(sha256sum "$tarball" | cut -d' ' -f1)"
     rm -f "$tarball"
 
-    sed -i "s/^version=.*/version=${ver}/" "$void_pkgs/srcpkgs/dms-greeter/template"
-    sed -i "s/^checksum=.*/checksum=${checksum}/" "$void_pkgs/srcpkgs/dms-greeter/template"
+    sed -i "s/^version=.*/version=${ver}/" "$void_pkgs/srcpkgs/${PACKAGE}/template"
+    sed -i "s/^checksum=.*/checksum=${checksum}/" "$void_pkgs/srcpkgs/${PACKAGE}/template"
 
-    echo "🔨 Compiling dms-greeter via xbps-src..."
-    (cd "$void_pkgs" && ./xbps-src pkg dms-greeter)
+    echo "🔨 Compiling ${PACKAGE} via xbps-src..."
+    (cd "$void_pkgs" && ./xbps-src pkg "$PACKAGE")
 
     if [[ -n "$REPOSITORY_DIR" ]]; then
         mkdir -p "$REPOSITORY_DIR/current"
@@ -316,7 +327,7 @@ build_stable_xbps() {
 }
 
 if [[ "$SMOKE" == true ]]; then
-    if [[ "$PACKAGE" == "dms-greeter-git" ]]; then
+    if [[ "$PACKAGE" == *-git ]]; then
         smoke_git
     else
         smoke_stable
@@ -339,7 +350,7 @@ if [[ ! -f "$VOID_PACKAGES_DIR/srcpkgs/${PACKAGE}/template" ]]; then
     cp -R "$TEMPLATE_ROOT/${PACKAGE}" "$VOID_PACKAGES_DIR/srcpkgs/"
 fi
 
-if [[ "$PACKAGE" == "dms-greeter-git" ]]; then
+if [[ "$PACKAGE" == *-git ]]; then
     build_git_xbps "$VOID_PACKAGES_DIR"
 else
     build_stable_xbps "$VOID_PACKAGES_DIR"

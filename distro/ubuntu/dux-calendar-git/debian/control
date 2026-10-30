@@ -1,0 +1,38 @@
+Source: dux-calendar-git
+Section: utils
+Priority: optional
+Maintainer: Avenge Media <AvengeMedia.US@gmail.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Homepage: https://github.com/duxlabs-dev/dux-calendar
+Vcs-Browser: https://github.com/duxlabs-dev/dux-calendar
+Vcs-Git: https://github.com/duxlabs-dev/dux-calendar.git
+
+Package: dux-calendar-git
+Architecture: any
+Depends: ${misc:Depends},
+         quickshell-git | quickshell,
+         libsecret-1-0,
+         libqt6quick6
+Conflicts: dux-calendar,
+           dankcalendar (<< 2.0.0ppa3)
+Breaks: dankcalendar-git (<< 2.0.1+git275.fe1a21appa3)
+Replaces: dux-calendar,
+          dankcalendar (<< 2.0.0ppa3),
+          dankcalendar-git (<< 2.0.1+git275.fe1a21appa3)
+Description: Calendar app for the Dux Labs desktop (git)
+ Dux Calendar brings Local, Google, Microsoft, CalDAV, and iCloud calendars
+ together in one standalone app. It runs as a lightweight daemon with a tray
+ icon, keeps accounts in sync, and reminds you about events.
+ .
+ This is the git development package built from upstream master.
+
+Package: dankcalendar-git
+Architecture: all
+Section: oldlibs
+Priority: optional
+Depends: ${misc:Depends},
+         dux-calendar-git (>= 2.0.1+git275.fe1a21appa3)
+Description: transitional package, safe to remove
+ dankcalendar-git has been renamed to dux-calendar-git.
+ This package pulls in dux-calendar-git and can be removed afterwards.

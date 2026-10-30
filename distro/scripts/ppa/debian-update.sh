@@ -54,13 +54,24 @@ PACKAGES=(
     "xwayland-satellite:Supreeeme/xwayland-satellite:release"
     "matugen:InioX/matugen:release"
     "ghostty:ghostty-org/ghostty:release"
-    "danksearch:duxlabs-dev/dux-search:release"
-    "dankcalendar:duxlabs-dev/dux-calendar:release"
-    "dankcalendar-git:duxlabs-dev/dux-calendar:git"
+    "dux-search:duxlabs-dev/dux-search:release"
+    "dux-calendar:duxlabs-dev/dux-calendar:release"
+    "dux-calendar-git:duxlabs-dev/dux-calendar:git"
     "dux-files:duxlabs-dev/dux-files:release"
     "dux-files-git:duxlabs-dev/dux-files:git"
-    "dgop:duxlabs-dev/dux-gop:release"
+    "dux-gop:duxlabs-dev/dux-gop:release"
 )
+
+declare -A OLD_NAME=(
+    [dux-search]=danksearch
+    [dux-calendar]=dankcalendar
+    [dux-calendar-git]=dankcalendar-git
+    [dux-gop]=dgop
+)
+for pkg_info in "${PACKAGES[@]}"; do
+    package="${pkg_info%%:*}"
+    [[ -z "${OLD_NAME[$package]:-}" ]] || PACKAGES+=("${OLD_NAME[$package]}:${pkg_info#*:}")
+done
 
 get_latest_tag() {
     local repo="$1"

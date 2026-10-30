@@ -1,0 +1,12 @@
+dux-calendar-git (2.0.1+git275.fe1a21a8.db1) unstable; urgency=medium
+
+  * Rename the package from dankcalendar-git to dux-calendar-git.
+  * dankcalendar-git is now a transitional package.
+
+ -- Avenge Media <AvengeMedia.US@gmail.com>  Fri, 30 Oct 2026 12:00:00 +0000
+
+dankcalendar-git (0.1.2+git14.677116eddb1) unstable; urgency=medium
+
+  * Git snapshot (commit 14: 677116ed)
+
+ -- Avenge Media <AvengeMedia.US@gmail.com>  Sun, 15 Jun 2026 12:00:00 +0000

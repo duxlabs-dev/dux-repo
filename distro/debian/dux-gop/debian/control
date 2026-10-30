@@ -1,0 +1,27 @@
+Source: dux-gop
+Section: utils
+Priority: optional
+Maintainer: Avenge Media <AvengeMedia.US@gmail.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Homepage: https://github.com/duxlabs-dev/dux-gop
+
+Package: dux-gop
+Architecture: amd64 arm64
+Depends: ${misc:Depends}
+Breaks: dgop (<< 2.0.0.db1)
+Replaces: dgop (<< 2.0.0.db1)
+Description: Stateless CPU/GPU monitor for Dux Shell
+ DGOP is a stateless system monitoring tool that provides CPU, GPU,
+ memory, and network statistics. Designed for integration with
+ Dux Shell but can be used standalone.
+
+Package: dgop
+Architecture: all
+Section: oldlibs
+Priority: optional
+Depends: ${misc:Depends},
+         dux-gop (>= 2.0.0.db1)
+Description: transitional package, safe to remove
+ dgop has been renamed to dux-gop.
+ This package pulls in dux-gop and can be removed afterwards.

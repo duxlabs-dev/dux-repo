@@ -45,9 +45,9 @@ body:
       description: Which package(s) does this request concern?
       options:
         - label: cliphist
-        - label: danksearch
-        - label: dgop
-        - label: dms-greeter
+        - label: dux-gop
+        - label: dux-greeter
+        - label: dux-search
         - label: ghostty
         - label: matugen
         - label: niri

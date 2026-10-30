@@ -1,21 +1,13 @@
 # Template file for 'danksearch'
 #
-# Package 'danksearch' installs the 'dsearch' binary (built from cmd/dsearch).
+# Transitional package: pulls in dux-search, which replaces it, so
+# `xbps-install -Su` moves existing installs to the new name.
 pkgname=danksearch
 version=2.0.0
-revision=1
-build_style=go
-go_import_path="github.com/duxlabs-dev/dux-search"
-go_package="${go_import_path}/cmd/dsearch"
-go_ldflags="-X main.Version=${version}"
-short_desc="Blazingly fast filesystem search tool (Dux Shell)"
+revision=2
+metapackage=yes
+depends="dux-search"
+short_desc="Transitional package for dux-search"
 maintainer="AvengeMedia <AvengeMedia.US@gmail.com>"
-license="MIT"
-homepage="https://duxlabs.dev/docs/dsearch/"
-distfiles="https://github.com/duxlabs-dev/dux-search/archive/refs/tags/v${version}.tar.gz"
-checksum=b33665b22692e12075b23acdbe3f03e4f3d64e50223f92820117e525d18aabe4
-wrksrc="dux-search-${version}"
-
-post_install() {
-	vlicense LICENSE
-}
+license="Public Domain"
+homepage="https://github.com/duxlabs-dev/dux-search"

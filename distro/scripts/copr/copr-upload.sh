@@ -6,7 +6,7 @@
 set -euo pipefail
 
 COPR_OWNER="${COPR_OWNER:-duxlabs}"
-COPR_PROJECT="${COPR_PROJECT:-dux-repo}"
+COPR_PROJECT="${COPR_PROJECT:-$([[ "$COPR_OWNER" == avengemedia ]] && echo danklinux || echo dux-repo)}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
@@ -42,14 +42,34 @@ if [[ $# -lt 1 ]]; then
     error "Usage: $0 <package-name>"
     echo ""
     echo "Available packages:"
-    echo "  cli11, quickshell, quickshell-git, dankcalendar, dankcalendar-git, dux-files, dux-files-git,"
-    echo "  dms-greeter, dms-greeter-git,"
-    echo "  dgop, matugen, ghostty, danksearch, material-symbols-fonts, qt6ct-kde,"
+    echo "  cli11, quickshell, quickshell-git, dux-calendar, dux-calendar-git, dux-files, dux-files-git,"
+    echo "  dux-greeter, dux-greeter-git,"
+    echo "  dux-gop, matugen, ghostty, dux-search, material-symbols-fonts, qt6ct-kde,"
     echo "  greetd, gtk4-layer-shell, cava, alacritty, xwayland-satellite (EL10 only)"
     exit 1
 fi
 
 PACKAGE="$1"
+
+declare -A LEGACY_NAME=(
+    [dux-gop]=dgop
+    [dux-search]=danksearch
+    [dux-calendar]=dankcalendar
+    [dux-calendar-git]=dankcalendar-git
+    [dux-greeter]=dms-greeter
+    [dux-greeter-git]=dms-greeter-git
+)
+if [[ "$COPR_OWNER" == "avengemedia" ]]; then
+    PACKAGE="${LEGACY_NAME[$PACKAGE]:-$PACKAGE}"
+else
+    for new in "${!LEGACY_NAME[@]}"; do
+        if [[ "${LEGACY_NAME[$new]}" == "$PACKAGE" ]]; then
+            error "$PACKAGE is a legacy name; $COPR_OWNER publishes $new"
+            exit 1
+        fi
+    done
+fi
+
 SPEC_FILE="$REPO_ROOT/distro/fedora/$PACKAGE/$PACKAGE.spec"
 
 # Handle special cases
@@ -57,10 +77,14 @@ if [[ "$PACKAGE" == "material-symbols-fonts" ]]; then
     SPEC_FILE="$REPO_ROOT/distro/fedora/fonts/material-symbols-fonts.spec"
 elif [[ "$PACKAGE" == "quickshell-git" ]]; then
     SPEC_FILE="$REPO_ROOT/distro/fedora/quickshell/quickshell-git.spec"
-elif [[ "$PACKAGE" == "dankcalendar-git" ]]; then
-    SPEC_FILE="$REPO_ROOT/distro/fedora/dankcalendar/dankcalendar-git.spec"
+elif [[ "$PACKAGE" == "dux-calendar-git" ]]; then
+    SPEC_FILE="$REPO_ROOT/distro/fedora/dux-calendar/dux-calendar-git.spec"
 elif [[ "$PACKAGE" == "dux-files-git" ]]; then
     SPEC_FILE="$REPO_ROOT/distro/fedora/dux-files/dux-files-git.spec"
+elif [[ "$PACKAGE" == "dux-greeter-git" ]]; then
+    SPEC_FILE="$REPO_ROOT/distro/fedora/dux-greeter/dux-greeter-git.spec"
+elif [[ "$PACKAGE" == "dankcalendar-git" ]]; then
+    SPEC_FILE="$REPO_ROOT/distro/fedora/dankcalendar/dankcalendar-git.spec"
 elif [[ "$PACKAGE" == "dms-greeter-git" ]]; then
     SPEC_FILE="$REPO_ROOT/distro/fedora/dms-greeter/dms-greeter-git.spec"
 fi

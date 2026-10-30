@@ -221,6 +221,14 @@ get_debian_epoch() {
     fi
 }
 
+# Package this one was renamed from (empty when none)
+get_replaced_package() {
+    local package="$1"
+    local config=$(load_package_config "$package")
+
+    echo "$config" | yq eval '.replaces // ""' -
+}
+
 # Whether the package bundles a Go toolchain into .go-toolchain/ for offline builds
 bundles_go_toolchain() {
     local package="$1"
@@ -251,22 +259,55 @@ get_tarball_compression() {
     echo "$config" | yq eval '.tarball.compression // "gz"' -
 }
 
-# List all packages
+# Whether PACKAGE builds for $OBS_OWNER (no owners list = every owner)
+package_has_owner() {
+    local package="$1"
+    local owners=$(yq eval ".packages.\"$package\".owners // [] | .[]" "$CONFIG_FILE")
+
+    [[ -z "$owners" ]] || grep -qxF "$OBS_OWNER" <<< "$owners"
+}
+
+# PACKAGE as $OBS_OWNER builds it, following `replaces` across a rename in either direction
+resolve_owner_package() {
+    local package="$1" candidate
+
+    check_yq
+
+    for candidate in "$package" \
+        "$(yq eval ".packages.\"$package\".replaces // \"\"" "$CONFIG_FILE")" \
+        $(yq eval ".packages | to_entries | .[] | select(.value.replaces == \"$package\") | .key" "$CONFIG_FILE"); do
+        if [[ -n "$candidate" ]] && validate_package "$candidate" && package_has_owner "$candidate"; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# List all packages for $OBS_OWNER
 list_packages() {
     check_yq
     validate_config_file
 
-    yq eval '.packages | keys | .[]' "$CONFIG_FILE" | tr '\n' ' '
+    local package
+    for package in $(yq eval '.packages | keys | .[]' "$CONFIG_FILE"); do
+        package_has_owner "$package" && printf '%s ' "$package"
+    done
+    return 0
 }
 
-# List packages in a group
+# List packages in a group for $OBS_OWNER
 list_package_group() {
     local group="$1"
 
     check_yq
     validate_config_file
 
-    yq eval ".groups.$group[]" "$CONFIG_FILE" 2>/dev/null | tr '\n' ' '
+    local package resolved
+    for package in $(yq eval ".groups.\"$group\"[]" "$CONFIG_FILE" 2>/dev/null); do
+        resolved=$(resolve_owner_package "$package") && printf '%s ' "$resolved"
+    done
+    return 0
 }
 
 # Expand package selector (handles "all", group names, or package names)
@@ -292,11 +333,11 @@ expand_package_selector() {
             if [[ -n "$group_packages" ]]; then
                 echo "$group_packages"
             else
-                # Treat as individual package name
-                # Validate package exists
-                local config=$(yq eval ".packages.$selector" "$CONFIG_FILE" 2>/dev/null)
-                if [[ "$config" != "null" && -n "$config" ]]; then
-                    echo "$selector"
+                if resolve_owner_package "$selector"; then
+                    return 0
+                elif validate_package "$selector"; then
+                    log_error "Package '$selector' is not built for OBS owner '$OBS_OWNER' ($OBS_PROJECT)"
+                    return 1
                 else
                     log_error "Unknown package or group: $selector"
                     return 1
@@ -372,6 +413,16 @@ get_binary_template() {
     local config=$(load_package_config "$package")
 
     echo "$config" | yq eval '.build.binary_template // ""' -
+}
+
+# Upstream release tarball for VERSION; DEFAULT when the package sets no release_tarball
+get_release_tarball() {
+    local package="$1" version="$2" default="$3"
+    local config=$(load_package_config "$package")
+    local template=$(echo "$config" | yq eval '.upstream.release_tarball // ""' -)
+
+    [[ -z "$template" ]] && { echo "$default"; return; }
+    echo "${template//\{version\}/$version}"
 }
 
 # Get package full configuration as JSON (for passing to other scripts)

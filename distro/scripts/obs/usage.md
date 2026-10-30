@@ -109,7 +109,9 @@ packages:
 - `vendor_deps: true` — vendor Go/Rust dependencies into the source tarball (OBS builds are offline)
 - `bundle_go_toolchain: true` — download go.dev tarballs (version from upstream `core/go.mod`) into `.go-toolchain/{amd64,arm64}/go`; `debian/rules` and the spec put `.go-toolchain/<arch>/go/bin` on `PATH`
 - `binary_release: true` — download prebuilt `<pkg>-linux-{amd64,arm64}.gz` release assets instead of building (`binary_template` overrides the name)
-- `debian_epoch: N` — emit `N:` in `debian/changelog` versions (packages that already carry an epoch, e.g. dms-greeter)
+- `debian_epoch: N` — emit `N:` in `debian/changelog` versions (packages that already carry an epoch, e.g. dux-greeter)
+
+**openSUSE Release:** OBS replaces the spec `Release:` with `<CI_CNT>.<B_CNT>`, which restarts at 1 for a new package. A spec may set `Release: N.<CI_CNT>.<B_CNT>` to sort above a renamed predecessor; `obs-build-opensuse.sh` keeps that line.
 
 ## Version Format
 
@@ -127,8 +129,8 @@ Same source, incremented `.db` suffix. Use for packaging fixes, dependency updat
 
 ## Packages
 
-**Stable:** dankcalendar, danksearch, dgop, dms-greeter, dux-files, ghostty, matugen, niri (Debian), quickshell, xwayland-satellite
-**Git:** dankcalendar-git, dms-greeter-git, dux-files-git, niri-git, quickshell-git, xwayland-satellite-git
+**Stable:** dux-calendar, dux-files, dux-gop, dux-greeter, dux-search, ghostty, matugen, niri (Debian), quickshell, xwayland-satellite
+**Git:** dux-calendar-git, dux-files-git, dux-greeter-git, niri-git, quickshell-git, xwayland-satellite-git
 **Snapshot (stable):** quickshell (stable) uses [snapshots.yaml](../../snapshots.yaml) to track the upstream commit until a newer release than `base_version` appears.
 
 ## Testing

@@ -102,6 +102,7 @@ jobs:
       matrix: ${{ fromJson(needs.check.outputs.obs_matrix) }}
     env:
       OBS_PROJECT: ${{ matrix.project }}
+      OBS_OWNER: ${{ matrix.owner }}
 
     steps:
       - name: Checkout repository

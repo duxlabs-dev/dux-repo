@@ -114,6 +114,7 @@ if [[ -n "$TARGET_DISTRO" && ! "$TARGET_DISTRO" =~ ^(debian|opensuse|both)$ ]]; 
 fi
 
 log_info "OBS Build Orchestrator"
+log_info "OBS owner: $OBS_OWNER ($OBS_PROJECT)"
 log_info "Package: $PACKAGE"
 [[ -n "$REBUILD_NUM" ]] && log_info "Rebuild number: $REBUILD_NUM"
 [[ -n "$TARGET_DISTRO" && "$TARGET_DISTRO" != "both" ]] && log_info "Target distro: $TARGET_DISTRO"

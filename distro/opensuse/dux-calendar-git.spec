@@ -1,0 +1,110 @@
+%global debug_package %{nil}
+
+Name:           dux-calendar-git
+Version:        0.2.4+git86.5be85575
+# Release prefix must sort above the last build under the old name
+Release:        2.<CI_CNT>.<B_CNT>
+Summary:        Calendar app for the Dux Labs desktop (git)
+
+License:        MIT
+URL:            https://github.com/duxlabs-dev/dux-calendar
+Source0:        dux-calendar.tar.gz
+
+BuildRequires:  systemd-rpm-macros
+
+Requires:       (quickshell-git or quickshell)
+Requires:       libsecret-1-0
+Requires:       libQt6Quick6
+
+Provides:       dankcalendar-git = %{?epoch:%{epoch}:}%{version}-%{release}
+Obsoletes:      dankcalendar-git < %{?epoch:%{epoch}:}%{version}-%{release}
+Conflicts:      dux-calendar
+
+%description
+Dux Calendar brings Local, Google, Microsoft, CalDAV, and iCloud calendars
+together in one standalone app. It runs as a lightweight daemon with a tray
+icon, keeps accounts in sync, and reminds you about events.
+
+This is the git development package built from upstream master.
+
+%prep
+%setup -q -n dux-calendar
+
+%build
+# OBS has no network; distro Go may be older than go.mod requires (e.g. 16.1, Debian 13).
+# Use the Go toolchain bundled into the source tarball at OBS prep time.
+case "$(uname -m)" in
+    x86_64) GO_HOST_ARCH=amd64 ;;
+    aarch64) GO_HOST_ARCH=arm64 ;;
+    *) echo "unsupported architecture: $(uname -m)"; exit 1 ;;
+esac
+export PATH="$(pwd)/.go-toolchain/${GO_HOST_ARCH}/go/bin:${PATH}"
+export GOTOOLCHAIN=local
+export GOFLAGS="-buildmode=pie -trimpath -mod=vendor -modcacherw"
+export VERSION="%{version}"
+export BUILD_TIME="$(date -u '+%%Y-%%m-%%d_%%H:%%M:%%S')"
+export COMMIT="$(echo %{version} | sed -n 's/.*\.\([a-f0-9]\{8\}\)$/\1/p')"
+
+# Embed the quickshell UI and build it into the binary.
+rm -rf core/internal/shellembed/dist
+cp -aL quickshell core/internal/shellembed/dist
+rm -rf core/internal/shellembed/dist/scripts
+rm -f core/internal/shellembed/dist/translations/extract_translations.py
+
+cd core
+CGO_ENABLED=0 go build \
+    -tags withshell \
+    -ldflags="-s -w -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.Commit=${COMMIT}" \
+    -o ../dcal ./cmd/dcal
+cd ..
+
+mkdir -p completions
+./dcal completion bash > completions/dcal
+./dcal completion zsh > completions/_dcal
+./dcal completion fish > completions/dcal.fish
+
+%install
+install -Dm755 dcal %{buildroot}%{_bindir}/dcal
+
+install -Dm644 assets/dev.duxlabs.calendar.svg \
+    %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/dev.duxlabs.calendar.svg
+
+install -Dm644 assets/dev.duxlabs.calendar.desktop \
+    %{buildroot}%{_datadir}/applications/dev.duxlabs.calendar.desktop
+
+install -Dm644 assets/systemd/dcal.service \
+    %{buildroot}%{_userunitdir}/dcal.service
+
+install -Dm644 completions/dcal \
+    %{buildroot}%{_datadir}/bash-completion/completions/dcal
+install -Dm644 completions/_dcal \
+    %{buildroot}%{_datadir}/zsh/site-functions/_dcal
+install -Dm644 completions/dcal.fish \
+    %{buildroot}%{_datadir}/fish/vendor_completions.d/dcal.fish
+
+%files
+%license LICENSE
+%{_bindir}/dcal
+%{_userunitdir}/dcal.service
+%{_datadir}/applications/dev.duxlabs.calendar.desktop
+%dir %{_datadir}/icons/hicolor
+%dir %{_datadir}/icons/hicolor/scalable
+%dir %{_datadir}/icons/hicolor/scalable/apps
+%{_datadir}/icons/hicolor/scalable/apps/dev.duxlabs.calendar.svg
+%dir %{_datadir}/bash-completion
+%dir %{_datadir}/bash-completion/completions
+%{_datadir}/bash-completion/completions/dcal
+%dir %{_datadir}/zsh
+%dir %{_datadir}/zsh/site-functions
+%{_datadir}/zsh/site-functions/_dcal
+%dir %{_datadir}/fish
+%dir %{_datadir}/fish/vendor_completions.d
+%{_datadir}/fish/vendor_completions.d/dcal.fish
+
+%changelog
+* Fri Oct 30 2026 Purian23 <purian23@users.noreply.github.com> - 2.0.1+git275.fe1a21a8
+- Rename package from dankcalendar-git
+* Mon Jul 13 2026 Avenge Media <AvengeMedia.US@gmail.com> - 0.2.4+git86.5be85575-2
+- Build with -tags withshell; stop installing QML (UI embedded in binary)
+* Mon Jun 15 2025 Avenge Media <AvengeMedia.US@gmail.com> - 0.1.2+git14.677116ed-1
+- Initial git package (commit 677116ed)

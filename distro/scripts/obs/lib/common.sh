@@ -39,8 +39,17 @@ TEMP_DIR=""
 readonly CACHE_DIR="$HOME/.cache/obs-automation"
 readonly CACHE_TTL=900  # 15 minutes
 
-# Still the legacy default: no home:duxlabs OBS projects exist yet.
 OBS_PROJECT="${OBS_PROJECT:-home:AvengeMedia:danklinux}"
+if [[ "$OBS_PROJECT" == home:duxlabs:* ]]; then
+    _OBS_PROJECT_OWNER=duxlabs
+else
+    _OBS_PROJECT_OWNER=avengemedia
+fi
+if [[ -n "${OBS_OWNER:-}" && "$OBS_OWNER" != "$_OBS_PROJECT_OWNER" ]]; then
+    echo "OBS_OWNER '$OBS_OWNER' does not match OBS_PROJECT '$OBS_PROJECT' (owner '$_OBS_PROJECT_OWNER')" >&2
+    exit 1
+fi
+OBS_OWNER="$_OBS_PROJECT_OWNER"
 
 # Logging functions
 log_debug() {

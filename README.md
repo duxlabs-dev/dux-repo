@@ -28,12 +28,24 @@
 - **quickshell** - QtQuick-based Wayland desktop shell framework
 - **matugen** - Material Design 3 color palette generator for themes
 - **cliphist** - Wayland clipboard manager with history support
-- **danksearch** - Fast application launcher and file search tool
-- **dankcalendar** - Calendar app with Local, Google, Microsoft, CalDAV, and iCloud support (`dcal`)
-- **dankcalendar-git** - Dux Calendar built from upstream master
+- **dux-search** - Fast application launcher and file search tool (`dsearch`)
+- **dux-calendar** - Calendar app with Local, Google, Microsoft, CalDAV, and iCloud support (`dcal`)
+- **dux-calendar-git** - Dux Calendar built from upstream master
 - **dux-files** - File manager with tabs, split panes, network shares and a portal file chooser (`dfiles`)
 - **dux-files-git** - Dux Files built from upstream master
-- **dgop** - System package manager integration tool
+- **dux-gop** - System package manager integration tool (`dgop`)
+- **dux-greeter** / **dux-greeter-git** - greetd greeter (`dms-greeter`)
+
+### Renamed packages
+
+Some packages were renamed in the `duxlabs` repositories; the legacy `avengemedia` repositories keep the old names until they are retired. In the `duxlabs` repositories the old names remain as transitional/obsoleted packages, so upgrading moves you to the new name automatically with your regular update command (`dnf upgrade`, `apt upgrade`, `xbps-install -Su`). Binaries keep their names.
+
+| Old name | New name |
+| --- | --- |
+| `danksearch` | `dux-search` |
+| `dankcalendar` / `dankcalendar-git` | `dux-calendar` / `dux-calendar-git` |
+| `dgop` | `dux-gop` |
+| `dms-greeter` / `dms-greeter-git` | `dux-greeter` / `dux-greeter-git` |
 
 ## Installation
 
@@ -43,7 +55,7 @@
 
 DMS packages are available via OBS (Debian/OpenSUSE), Launchpad PPA (Ubuntu), and Fedora COPR.
 
-> **Required**: DMS depends on packages from the danklinux repository (`quickshell-git`, `matugen`, `cliphist`, `danksearch`, `dgop`). Install the [dependencies](#dependencies-danklinux-repository) first, then install DMS. Niri is optional but recommended as the default compositor.
+> **Required**: DMS depends on packages from the danklinux repository (`quickshell-git`, `matugen`, `cliphist`, `dux-search`, `dux-gop`). Install the [dependencies](#dependencies-danklinux-repository) first, then install DMS. Niri is optional but recommended as the default compositor.
 
 <details>
 <summary><b>Debian 13 / Testing</b></summary>
@@ -143,7 +155,7 @@ echo "deb [signed-by=/etc/apt/keyrings/danklinux.gpg] https://download.opensuse.
 sudo apt update
 
 # Install packages
-sudo apt install niri quickshell-git matugen cliphist danksearch dgop dankcalendar-git dux-files-git
+sudo apt install niri quickshell-git matugen cliphist dux-search dux-gop dux-calendar-git dux-files-git
 ```
 
 <details>
@@ -155,7 +167,7 @@ curl -fsSL https://download.opensuse.org/repositories/home:AvengeMedia:danklinux
   sudo gpg --dearmor -o /etc/apt/keyrings/danklinux.gpg
 echo "deb [signed-by=/etc/apt/keyrings/danklinux.gpg] https://download.opensuse.org/repositories/home:/AvengeMedia:/danklinux/Debian_Testing/ /" | \
   sudo tee /etc/apt/sources.list.d/danklinux.list
-sudo apt update && sudo apt install niri quickshell-git matugen cliphist danksearch dgop dankcalendar-git dux-files-git
+sudo apt update && sudo apt install niri quickshell-git matugen cliphist dux-search dux-gop dux-calendar-git dux-files-git
 ```
 
 </details>
@@ -170,7 +182,7 @@ sudo apt update && sudo apt install niri quickshell-git matugen cliphist danksea
 # Add PPA and install packages
 sudo add-apt-repository ppa:avengemedia/danklinux
 sudo apt update
-sudo apt install niri quickshell-git matugen cliphist danksearch dgop dankcalendar-git dux-files-git
+sudo apt install niri quickshell-git matugen cliphist dux-search dux-gop dux-calendar-git dux-files-git
 ```
 
 ### Fedora 41+ (COPR)
@@ -178,7 +190,7 @@ sudo apt install niri quickshell-git matugen cliphist danksearch dgop dankcalend
 ```bash
 # Add COPR and install packages
 sudo dnf copr enable avengemedia/danklinux
-sudo dnf install quickshell-git matugen cliphist danksearch dgop dankcalendar-git dux-files-git ghostty dms-greeter
+sudo dnf install quickshell-git matugen cliphist dux-search dux-gop dux-calendar-git dux-files-git ghostty dux-greeter
 ```
 
 ### OpenSUSE Tumbleweed
@@ -187,7 +199,7 @@ sudo dnf install quickshell-git matugen cliphist danksearch dgop dankcalendar-gi
 # Add repository and install packages
 sudo zypper addrepo https://download.opensuse.org/repositories/home:AvengeMedia:danklinux/openSUSE_Tumbleweed/home:AvengeMedia:danklinux.repo
 sudo zypper refresh
-sudo zypper install niri quickshell-git matugen cliphist danksearch dgop dankcalendar-git dux-files-git
+sudo zypper install niri quickshell-git matugen cliphist dux-search dux-gop dux-calendar-git dux-files-git
 ```
 
 ---
@@ -200,8 +212,8 @@ All packages support:
 
 ## Package Variants
 
-- **Stable packages** (`dms`, `niri`, `matugen`, `cliphist`, `dms-greeter`) - Tagged releases
-- **Git packages** (`dms-git`, `niri-git`, `quickshell-git`, `dms-greeter-git`) - Latest development code, rebuilt every 6 hours when upstream changes
+- **Stable packages** (`dms`, `niri`, `matugen`, `cliphist`, `dux-greeter`) - Tagged releases
+- **Git packages** (`dms-git`, `niri-git`, `quickshell-git`, `dux-greeter-git`) - Latest development code, rebuilt every 6 hours when upstream changes
 
 ## Getting Started
 
@@ -212,12 +224,12 @@ All packages support:
 ## Upstream Projects
 
 - [Dux Shell](https://github.com/duxlabs-dev/dux-shell) - DMS desktop environment
-- [Dux Greeter](https://github.com/duxlabs-dev/dux-greeter) - greetd greeter (`dms-greeter` / `dms-greeter-git`); Copr, OBS, PPA and Void packages are built from this repo
+- [Dux Greeter](https://github.com/duxlabs-dev/dux-greeter) - greetd greeter (`dux-greeter` / `dux-greeter-git`); Copr, OBS, PPA and Void packages are built from this repo
 - [Niri](https://github.com/YaLTeR/niri) - Scrollable-tiling Wayland compositor  
 - [Quickshell](https://github.com/outfoxxed/quickshell) - QtQuick desktop shell toolkit  
 - [Matugen](https://github.com/InioX/matugen) - Material You color generator  
 - [Cliphist](https://github.com/sentriz/cliphist) - Wayland clipboard manager  
-- [Danksearch](https://github.com/duxlabs-dev/dux-search) - Application launcher  
+- [Dux Search](https://github.com/duxlabs-dev/dux-search) - Application launcher  
 - [Dgop](https://github.com/duxlabs-dev/dux-gop) - Package manager integration
 
 ## Build Status

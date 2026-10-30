@@ -16,12 +16,14 @@ on:
           - all
           - alacritty
           - cava
-          - dankcalendar
-          - dankcalendar-git
-          - dms-greeter
-          - dms-greeter-git
+          - dux-calendar
+          - dux-calendar-git
           - dux-files
           - dux-files-git
+          - dux-gop
+          - dux-greeter
+          - dux-greeter-git
+          - dux-search
           - ghostty
           - greetd
           - gtk4-layer-shell
@@ -126,6 +128,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           COPR_REBUILD_COUNT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.rebuild_release || '' }}
           COPR_REBUILD_PACKAGE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.package || '' }}
+          COPR_OWNERS: ${{ inputs.owners || 'all' }}
         run: |
           chmod +x distro/scripts/copr/*.sh distro/scripts/common/*.sh
           distro/scripts/copr/copr-update.sh | tee update-log.txt
@@ -150,7 +153,7 @@ jobs:
             # Compare commits only: copr-update.sh already dirtied the tree above
             BASE="${{ github.event.before }}"
             git cat-file -e "$BASE^{commit}" 2>/dev/null || BASE=HEAD~1
-            SPEC_CHANGES=$(git diff "$BASE" HEAD --name-only | grep '^distro/fedora/.*\.spec$' || echo "")
+            SPEC_CHANGES=$(git diff "$BASE" HEAD --name-only --diff-filter=d | grep '^distro/fedora/.*\.spec$' || echo "")
             if [[ -n "$SPEC_CHANGES" ]]; then
               echo "spec_changes=true" >> $GITHUB_OUTPUT
               echo "📋 Spec files modified in push:"

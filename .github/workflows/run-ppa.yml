@@ -10,14 +10,14 @@ on:
         options:
           - auto
           - all
-          - dankcalendar
-          - dankcalendar-git
-          - danksearch
-          - dgop
+          - dux-calendar
+          - dux-calendar-git
           - dux-files
           - dux-files-git
-          - dms-greeter
-          - dms-greeter-git
+          - dux-gop
+          - dux-greeter
+          - dux-greeter-git
+          - dux-search
           - ghostty
           - matugen
           - niri
@@ -91,8 +91,8 @@ jobs:
           if [[ "$EVENT_NAME" == "repository_dispatch" ]]; then
             # Narrow a greeter dispatch to the package that changed
             case "$DISPATCH_TYPE" in
-              greeter-git) PACKAGE="dms-greeter-git" ;;
-              greeter-release) PACKAGE="dms-greeter" ;;
+              greeter-git) PACKAGE="dux-greeter-git" ;;
+              greeter-release) PACKAGE="dux-greeter" ;;
               *) echo "Unknown repository_dispatch type: $DISPATCH_TYPE" >&2; exit 1 ;;
             esac
             REBUILD_RELEASE=""

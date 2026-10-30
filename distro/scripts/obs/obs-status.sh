@@ -8,11 +8,11 @@
 
 set -euo pipefail
 
-# shellcheck source=./lib/common.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+# shellcheck source=./lib/package-config.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/package-config.sh"
 OBS_BASE="$HOME/.cache/osc-checkouts"
 
-ALL_PACKAGES=(matugen matugen-snapshot niri niri-git quickshell quickshell-git xwayland-satellite xwayland-satellite-git danksearch dgop ghostty dankcalendar dankcalendar-git dux-files dux-files-git dms-greeter dms-greeter-git cli11 rust187)
+ALL_PACKAGES=(matugen matugen-snapshot niri niri-git quickshell quickshell-git xwayland-satellite xwayland-satellite-git dux-search dux-gop ghostty dux-calendar dux-calendar-git dux-files dux-files-git dux-greeter dux-greeter-git cli11 rust187)
 REPOS=("Debian_13" "Debian_Testing" "Debian_Unstable" "openSUSE_Tumbleweed" "openSUSE_Slowroll" "16.0" "16.1")
 ARCHES=("x86_64" "aarch64")
 
@@ -37,10 +37,19 @@ for arg in "$@"; do
     esac
 done
 
+PACKAGES=()
 if [[ -n "$PACKAGE_ARG" ]]; then
-    PACKAGES=("$PACKAGE_ARG")
+    if ! pkg=$(resolve_owner_package "$PACKAGE_ARG"); then
+        echo "Package '$PACKAGE_ARG' is unknown or not built for OBS owner '$OBS_OWNER' ($OBS_PROJECT)" >&2
+        exit 1
+    fi
+    PACKAGES=("$pkg")
 else
-    PACKAGES=("${ALL_PACKAGES[@]}")
+    for pkg in "${ALL_PACKAGES[@]}"; do
+        if pkg=$(resolve_owner_package "$pkg"); then
+            PACKAGES+=("$pkg")
+        fi
+    done
 fi
 
 TOTAL_OK=0

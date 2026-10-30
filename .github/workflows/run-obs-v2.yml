@@ -10,14 +10,14 @@ on:
         options:
           - all
           - all-git
-          - dankcalendar
-          - dankcalendar-git
-          - danksearch
-          - dgop
-          - dms-greeter
-          - dms-greeter-git
+          - dux-calendar
+          - dux-calendar-git
           - dux-files
           - dux-files-git
+          - dux-gop
+          - dux-greeter
+          - dux-greeter-git
+          - dux-search
           - ghostty
           - matugen
           - matugen-snapshot
@@ -93,6 +93,7 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       OBS_PROJECT: ${{ matrix.project }}
+      OBS_OWNER: ${{ matrix.owner }}
 
     steps:
       - name: Checkout repository
@@ -160,8 +161,8 @@ jobs:
           # Determine which packages to build
           if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
             case "$DISPATCH_TYPE" in
-              greeter-git) PACKAGES="dms-greeter-git" ;;
-              greeter-release) PACKAGES="dms-greeter" ;;
+              greeter-git) PACKAGES="dux-greeter-git" ;;
+              greeter-release) PACKAGES="dux-greeter" ;;
               *)
                 echo "Unknown repository_dispatch type: $DISPATCH_TYPE" >&2
                 exit 1

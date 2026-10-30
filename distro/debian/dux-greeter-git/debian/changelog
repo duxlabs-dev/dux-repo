@@ -1,0 +1,13 @@
+dux-greeter-git (1:2.0.0+git109.6cc83511.db1) unstable; urgency=medium
+
+  * Rename the package from dms-greeter-git to dux-greeter-git.
+  * dms-greeter-git is now a transitional package.
+
+ -- Avenge Media <AvengeMedia.US@gmail.com>  Fri, 30 Oct 2026 12:00:00 +0000
+
+dms-greeter-git (1:2.0.0+git96.920def34) unstable; urgency=medium
+
+  * Packaging moved from the dux-greeter repository to dux-packaging;
+    obs-build-debian.sh prepends the current git snapshot version on each upload.
+
+ -- Avenge Media <AvengeMedia.US@gmail.com>  Sat, 24 Oct 2026 00:00:00 +0000

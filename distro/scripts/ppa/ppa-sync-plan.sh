@@ -24,19 +24,29 @@ PACKAGES=(
     "quickshell-git:quickshell-mirror/quickshell:git"
     "xwayland-satellite:Supreeeme/xwayland-satellite:release"
     "xwayland-satellite-git:Supreeeme/xwayland-satellite:git"
-    "dankcalendar:duxlabs-dev/dux-calendar:release"
-    "dankcalendar-git:duxlabs-dev/dux-calendar:git"
+    "dux-calendar:duxlabs-dev/dux-calendar:release"
+    "dux-calendar-git:duxlabs-dev/dux-calendar:git"
     "dux-files:duxlabs-dev/dux-files:release"
     "dux-files-git:duxlabs-dev/dux-files:git"
-    "danksearch:duxlabs-dev/dux-search:release"
-    "dgop:duxlabs-dev/dux-gop:release"
-    "dms-greeter:duxlabs-dev/dux-greeter:release"
-    "dms-greeter-git:duxlabs-dev/dux-greeter:git"
+    "dux-search:duxlabs-dev/dux-search:release"
+    "dux-gop:duxlabs-dev/dux-gop:release"
+    "dux-greeter:duxlabs-dev/dux-greeter:release"
+    "dux-greeter-git:duxlabs-dev/dux-greeter:git"
+)
+
+# On duxlabs the old names ship as transitional binaries, which must sort above the last upload under the old name
+declare -A OLD_NAME=(
+    [dux-calendar]=dankcalendar
+    [dux-calendar-git]=dankcalendar-git
+    [dux-search]=danksearch
+    [dux-gop]=dgop
+    [dux-greeter]=dms-greeter
+    [dux-greeter-git]=dms-greeter-git
 )
 
 # Release assets that must exist before a stable upload is planned ("<package>:<asset with {version}>").
 RELEASE_REQUIRED_ASSETS=(
-    "dms-greeter:dank-greeter-{version}.tar.gz"
+    "dux-greeter:dank-greeter-{version}.tar.gz"
 )
 
 while [[ $# -gt 0 ]]; do
@@ -90,17 +100,25 @@ published_version() {
     curl -fsSL "$url" 2>/dev/null | jq -r '.entries[0].source_package_version // empty'
 }
 
-# Launchpad rejects a version already used by any series in the PPA, even a deleted one
+# Launchpad rejects a version already used by any series in the PPA, even a deleted one.
 used_ppa_numbers() {
-    local package="$1"
-    local base="$2"
-    local url="${LAUNCHPAD_API}/~${PPA_OWNER}/+archive/ubuntu/${PPA_NAME}?ws.op=getPublishedSources&source_name=${package}&exact_match=true&ws.size=300"
-    local version
+    local type="$1"
+    local key="$2"
+    shift 2
+    local name url version commit
 
-    curl -fsSL "$url" 2>/dev/null | jq -r '.entries[].source_package_version' | while read -r version; do
-        if [[ "$(release_base "$version")" == "$base" ]]; then
-            ppa_suffix "$version"
-        fi
+    for name in "$@"; do
+        url="${LAUNCHPAD_API}/~${PPA_OWNER}/+archive/ubuntu/${PPA_NAME}?ws.op=getPublishedSources&source_name=${name}&exact_match=true&ws.size=300"
+        curl -fsSL "$url" 2>/dev/null | jq -r '.entries[].source_package_version' | while read -r version; do
+            if [[ "$type" == "git" ]]; then
+                commit="$(embedded_commit "$version")"
+                if [[ -n "$commit" && "${key:0:${#commit}}" == "$commit" ]]; then
+                    ppa_suffix "$version"
+                fi
+            elif [[ "$(release_base "$version")" == "$key" ]]; then
+                ppa_suffix "$version"
+            fi
+        done
     done
 }
 
@@ -219,6 +237,13 @@ for pkg_info in "${PACKAGES[@]}"; do
     IFS=':' read -r package repo type <<< "$pkg_info"
     include_package "$package" || continue
 
+    src_name="$package"
+    former="${OLD_NAME[$package]:-}"
+    if [[ "$PPA_OWNER" == "avengemedia" ]]; then
+        src_name="${former:-$package}"
+        former=""
+    fi
+
     if [[ "$type" == "git" ]]; then
         expected_commit="$(latest_commit "$repo")"
         expected_label="${expected_commit:0:8}"
@@ -236,7 +261,7 @@ for pkg_info in "${PACKAGES[@]}"; do
             expected_label="$expected_base"
         fi
 
-        ppa_version="$(published_version "$package" "$series")"
+        ppa_version="$(published_version "$src_name" "$series")"
         needs_update=false
         reason=""
 
@@ -270,18 +295,23 @@ for pkg_info in "${PACKAGES[@]}"; do
 
         if [[ "$needs_update" == "true" ]]; then
             ppa_num="$(target_ppa "$series")"
-            if [[ "$type" == "release" && -z "$REBUILD_RELEASE" ]]; then
-                [[ -n "${used_ppa[$package]:-}" ]] || used_ppa[$package]=" $(used_ppa_numbers "$package" "$expected_base" | tr '\n' ' ') "
+            if [[ -z "$REBUILD_RELEASE" ]] && [[ "$type" == "release" || -n "$former" ]]; then
+                if [[ "$type" == "release" ]]; then
+                    used_key="$expected_base"
+                else
+                    used_key="$expected_commit"
+                fi
+                [[ -n "${used_ppa[$package]:-}" ]] || used_ppa[$package]=" $(used_ppa_numbers "$type" "$used_key" "$src_name" $former | tr '\n' ' ') "
                 while [[ "${used_ppa[$package]}" == *" ${ppa_num} "* ]]; do
                     ppa_num=$((ppa_num + 1))
                 done
                 used_ppa[$package]+="${ppa_num} "
             fi
-            target="${package}:${series}:${ppa_num}"
+            target="${src_name}:${series}:${ppa_num}"
             TARGETS+=("$target")
-            echo "${package}/${series}: ${reason} (published: ${ppa_version:-none}, target: ${expected_label})" >&2
+            echo "${src_name}/${series}: ${reason} (published: ${ppa_version:-none}, target: ${expected_label})" >&2
         else
-            echo "${package}/${series}: current (${ppa_version})" >&2
+            echo "${src_name}/${series}: current (${ppa_version})" >&2
         fi
     done
 done

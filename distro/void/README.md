@@ -5,14 +5,14 @@ Each builds from source from its upstream release.
 
 | Package | Binary | Upstream | Description |
 | --- | --- | --- | --- |
-| `dgop` | `dgop` | [duxlabs-dev/dux-gop](https://github.com/duxlabs-dev/dux-gop) | System monitor / telemetry CLI |
-| `danksearch` | `dsearch` | [duxlabs-dev/dux-search](https://github.com/duxlabs-dev/dux-search) | Fast filesystem search |
-| `dankcalendar` | `dcal` | [duxlabs-dev/dux-calendar](https://github.com/duxlabs-dev/dux-calendar) | Calendar app (Local, Google, CalDAV, iCloud) |
+| `dux-gop` | `dgop` | [duxlabs-dev/dux-gop](https://github.com/duxlabs-dev/dux-gop) | System monitor / telemetry CLI |
+| `dux-search` | `dsearch` | [duxlabs-dev/dux-search](https://github.com/duxlabs-dev/dux-search) | Fast filesystem search |
+| `dux-calendar` | `dcal` | [duxlabs-dev/dux-calendar](https://github.com/duxlabs-dev/dux-calendar) | Calendar app (Local, Google, CalDAV, iCloud) |
 | `dux-files` | `dfiles` | [duxlabs-dev/dux-files](https://github.com/duxlabs-dev/dux-files) | File manager |
-| `dms-greeter` | `dms-greeter` | [duxlabs-dev/dux-greeter](https://github.com/duxlabs-dev/dux-greeter) | greetd login screen (stable release) |
-| `dms-greeter-git` | `dms-greeter` | [duxlabs-dev/dux-greeter](https://github.com/duxlabs-dev/dux-greeter) | greetd login screen (master snapshot) |
+| `dux-greeter` | `dms-greeter` | [duxlabs-dev/dux-greeter](https://github.com/duxlabs-dev/dux-greeter) | greetd login screen (stable release) |
+| `dux-greeter-git` | `dms-greeter` | [duxlabs-dev/dux-greeter](https://github.com/duxlabs-dev/dux-greeter) | greetd login screen (master snapshot) |
 
-`dgop` and `danksearch` integrate with Dux Shell; `dankcalendar` is a
+`dux-gop` and `dux-search` integrate with Dux Shell; `dux-calendar` is a
 standalone app. The `dms` / `dms-git` Void packages live in the
 [Dux Shell repo](https://github.com/duxlabs-dev/dux-shell/tree/master/distro/void).
 
@@ -20,11 +20,19 @@ standalone app. The `dms` / `dms-git` Void packages live in the
 `dux-greeter` clone (`distro/scripts/void/void-build.sh`), and publishes them
 all to `https://void.duxlabs.dev/dux-repo/current`.
 
-While `LEGACY_MIRROR` is on, the same run also republishes the tools to
-`danklinux/current` and the greeter to `dms/current`, so installs from before
+In `dux-repo/current` the old names (`dgop`, `danksearch`, `dankcalendar`,
+`dms-greeter`, `dms-greeter-git`) are transitional meta packages:
+`xbps-install -Su` moves existing installs to the new names.
+
+While `LEGACY_MIRROR` is on, the same run also builds the old names as real
+packages from `legacy/srcpkgs` and publishes only those: the tools (plus the
+never-renamed `dux-files`) to `danklinux/current` and the greeter to
+`dms/current`, so installs from before
 the rebrand keep updating. `dms/current` is shared with the Dux Shell
 publisher; both use `publish-void-r2.sh` with an ETag guard so one cannot
 overwrite the other's index.
+A tool version bump goes in both `srcpkgs/<new>` and `legacy/srcpkgs/<old>`;
+the greeters are re-versioned at build time.
 
 ## Distribution
 
@@ -50,13 +58,13 @@ echo "repository=https://void.duxlabs.dev/dux-repo/current" | sudo tee /etc/xbps
 Synchronize repositories and install the package(s):
 
 ```sh
-sudo xbps-install -S dgop danksearch dankcalendar dux-files
+sudo xbps-install -S dux-gop dux-search dux-calendar dux-files
 ```
 
 The greeter comes from the same repository:
 
 ```sh
-sudo xbps-install -S dms-greeter
+sudo xbps-install -S dux-greeter
 ```
 
 *Note: On the first sync, `xbps-install` will output our signing key fingerprint and ask you to type `y` to trust and import it. Verify that the key matches our official signing fingerprint.*
@@ -67,12 +75,12 @@ In a [void-packages](https://github.com/void-linux/void-packages) checkout, copy
 each `srcpkgs/<pkg>` directory in, then:
 
 ```sh
-./xbps-src pkg dgop
-./xbps-src pkg danksearch
-./xbps-src pkg dankcalendar
-sudo xbps-install --repository=hostdir/binpkgs dankcalendar
+./xbps-src pkg dux-gop
+./xbps-src pkg dux-search
+./xbps-src pkg dux-calendar
+sudo xbps-install --repository=hostdir/binpkgs dux-calendar
 ```
 
 
-To lint a template, use `xlint srcpkgs/dankcalendar/template` (from the `xtools`
+To lint a template, use `xlint srcpkgs/dux-calendar/template` (from the `xtools`
 package). These are Go packages and need Go ≥ 1.25 in the build environment.

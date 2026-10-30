@@ -1,0 +1,13 @@
+dux-gop (2.0.0.db1) unstable; urgency=medium
+
+  * Rename the package from dgop to dux-gop.
+  * dgop is now a transitional package.
+
+ -- Avenge Media <AvengeMedia.US@gmail.com>  Fri, 30 Oct 2026 12:00:00 +0000
+
+dgop (0.1.12db3) unstable; urgency=medium
+
+  * Rebuild to fix repository metadata issues
+
+ -- Avenge Media <AvengeMedia.US@gmail.com>  Tue, 16 Dec 2025 23:27:08 -0500
+

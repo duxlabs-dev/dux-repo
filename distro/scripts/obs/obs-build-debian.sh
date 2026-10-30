@@ -107,6 +107,14 @@ log_info "Output: $OUTPUT_DIR"
 if [[ -n "$REBUILD_NUM" ]]; then
     VERSION=$(increment_db_version "$VERSION" "$REBUILD_NUM")
     log_info "Rebuild version: $VERSION"
+elif [[ -n "$(get_replaced_package "$PACKAGE")" && "$VERSION" == "$(strip_db_suffixes "$VERSION")" ]]; then
+    # A renamed package's committed .dbN sorts above its predecessor and its Breaks bounds; keep it for the same upstream version
+    COMMITTED_VERSION=$(head -1 "$REPO_ROOT/distro/debian/${PACKAGE%-snapshot}/debian/changelog" 2>/dev/null |
+        sed -nE 's/^[^ ]+ \(([0-9]+:)?([^)]+)\).*/\2/p')
+    if [[ -n "$COMMITTED_VERSION" && "$(strip_db_suffixes "$COMMITTED_VERSION")" == "$VERSION" ]]; then
+        VERSION="$COMMITTED_VERSION"
+        log_info "Using committed changelog version: $VERSION"
+    fi
 fi
 
 # Create output directory
@@ -279,11 +287,12 @@ else
         DOWNLOAD_URL="${URL_TEMPLATE//\{version\}/$BASE_VERSION}"
     else
         # GitHub release - try multiple URL patterns
-        DOWNLOAD_URL="https://github.com/$UPSTREAM_REPO/releases/download/v${BASE_VERSION}/${BASE_PACKAGE}-${BASE_VERSION}.tar.gz"
+        RELEASE_TARBALL=$(get_release_tarball "$PACKAGE" "$BASE_VERSION" "${BASE_PACKAGE}-${BASE_VERSION}.tar.gz")
+        DOWNLOAD_URL="https://github.com/$UPSTREAM_REPO/releases/download/v${BASE_VERSION}/${RELEASE_TARBALL}"
 
         # Try without 'v' prefix if first attempt fails
         if ! curl -sL -f -I "$DOWNLOAD_URL" &>/dev/null; then
-            DOWNLOAD_URL="https://github.com/$UPSTREAM_REPO/releases/download/${BASE_VERSION}/${BASE_PACKAGE}-${BASE_VERSION}.tar.gz"
+            DOWNLOAD_URL="https://github.com/$UPSTREAM_REPO/releases/download/${BASE_VERSION}/${RELEASE_TARBALL}"
 
             # Try GitHub's automatic source archive as final fallback
             if ! curl -sL -f -I "$DOWNLOAD_URL" &>/dev/null; then

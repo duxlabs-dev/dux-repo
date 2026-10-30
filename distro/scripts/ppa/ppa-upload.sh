@@ -67,7 +67,15 @@ fi
 TEMP_DIR=$(mktemp -d "$TEMP_BASE/ppa_build_XXXXXX")
 trap "rm -rf $TEMP_DIR" EXIT
 
-AVAILABLE_PACKAGES=(cpptrace danksearch dgop ghostty matugen niri niri-git quickshell quickshell-git xwayland-satellite xwayland-satellite-git dankcalendar dankcalendar-git dux-files dux-files-git dms-greeter dms-greeter-git)
+AVAILABLE_PACKAGES=(cpptrace dux-search dux-gop ghostty matugen niri niri-git quickshell quickshell-git xwayland-satellite xwayland-satellite-git dux-calendar dux-calendar-git dux-files dux-files-git dux-greeter dux-greeter-git)
+declare -A RENAMED_TO=(
+    [danksearch]=dux-search
+    [dgop]=dux-gop
+    [dankcalendar]=dux-calendar
+    [dankcalendar-git]=dux-calendar-git
+    [dms-greeter]=dux-greeter
+    [dms-greeter-git]=dux-greeter-git
+)
 export PPA_OWNER="${PPA_OWNER:-duxlabs}"
 DEFAULT_PPA_NAME="${PPA_NAME:-dux-repo}"
 KEEP_BUILDS=false
@@ -207,11 +215,31 @@ if [[ -z "$PACKAGE" ]]; then
     fi
 fi
 
+declare -A OLD_NAME_OF=()
+for old in "${!RENAMED_TO[@]}"; do
+    OLD_NAME_OF[${RENAMED_TO[$old]}]="$old"
+done
+
+if [[ "$PPA_OWNER" == "avengemedia" && -n "${OLD_NAME_OF[$PACKAGE]:-}" ]]; then
+    info "Legacy PPA builds $PACKAGE as ${OLD_NAME_OF[$PACKAGE]}"
+    PACKAGE="${OLD_NAME_OF[$PACKAGE]}"
+    unset PACKAGE_DIR
+elif [[ "$PPA_OWNER" != "avengemedia" && -n "${RENAMED_TO[$PACKAGE]:-}" ]]; then
+    error "$PACKAGE is a legacy name; ppa:${PPA_OWNER} publishes ${RENAMED_TO[$PACKAGE]}"
+    exit 1
+fi
+
 if [[ "$PACKAGE" == "all" ]]; then
     echo ""
     info "Building and uploading all packages..."
     FAILED_PACKAGES=()
-    for pkg in "${AVAILABLE_PACKAGES[@]}"; do
+    ALL_PACKAGES=("${AVAILABLE_PACKAGES[@]}")
+    if [[ "$PPA_OWNER" == "avengemedia" ]]; then
+        for i in "${!ALL_PACKAGES[@]}"; do
+            ALL_PACKAGES[$i]="${OLD_NAME_OF[${ALL_PACKAGES[$i]}]:-${ALL_PACKAGES[$i]}}"
+        done
+    fi
+    for pkg in "${ALL_PACKAGES[@]}"; do
         echo ""
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         info "Processing $pkg..."
@@ -241,6 +269,7 @@ if [[ "$PACKAGE" == "all" ]]; then
 fi
 
 VALID_PACKAGE=false
+[[ -z "${RENAMED_TO[$PACKAGE]:-}" ]] || VALID_PACKAGE=true
 for pkg in "${AVAILABLE_PACKAGES[@]}"; do
     if [[ "$PACKAGE" == "$pkg" ]]; then
         VALID_PACKAGE=true
@@ -258,6 +287,7 @@ if [[ -z "${PACKAGE_DIR:-}" ]]; then
     PACKAGE_DIR="$REPO_ROOT/distro/ubuntu/$PACKAGE"
 fi
 PACKAGE_NAME="$PACKAGE"
+PACKAGE_KIND="${RENAMED_TO[$PACKAGE_NAME]:-$PACKAGE_NAME}"
 BUILD_DIR="$TEMP_DIR/$PACKAGE_NAME"
 
 if [ ! -d "$PACKAGE_DIR" ]; then
@@ -459,7 +489,7 @@ if grep -q "git clone" debian/rules 2>/dev/null; then
     fi
 fi
 
-case "$PACKAGE_NAME" in
+case "$PACKAGE_KIND" in
     cpptrace)
         GIT_REPO="jeremy-rifkin/cpptrace"
         ;;
@@ -473,8 +503,8 @@ case "$PACKAGE_NAME" in
         GIT_REPO="niri-wm/niri"
         SOURCE_DIR="niri"
         ;;
-    danksearch)
-        # danksearch uses pre-built binary releases
+    dux-search)
+        # dux-search uses pre-built binary releases
         GIT_REPO="duxlabs-dev/dux-search"
         ;;
     matugen)
@@ -494,14 +524,14 @@ case "$PACKAGE_NAME" in
         GIT_REPO="Supreeeme/xwayland-satellite"
         SOURCE_DIR="xwayland-satellite-source"
         ;;
-    dankcalendar)
-        # dankcalendar uses pre-built binary releases
+    dux-calendar)
+        # dux-calendar uses pre-built binary releases
         GIT_REPO="duxlabs-dev/dux-calendar"
         ;;
-    dankcalendar-git)
+    dux-calendar-git)
         IS_GIT_PACKAGE=true
         GIT_REPO="duxlabs-dev/dux-calendar"
-        SOURCE_DIR="dankcalendar"
+        SOURCE_DIR="dux-calendar"
         ;;
     dux-files)
         # dux-files uses pre-built binary releases
@@ -512,18 +542,18 @@ case "$PACKAGE_NAME" in
         GIT_REPO="duxlabs-dev/dux-files"
         SOURCE_DIR="dux-files"
         ;;
-    dms-greeter)
+    dux-greeter)
         GIT_REPO="duxlabs-dev/dux-greeter"
         NO_LINTIAN="true"
         ;;
-    dms-greeter-git)
+    dux-greeter-git)
         IS_GIT_PACKAGE=true
         GIT_REPO="duxlabs-dev/dux-greeter"
-        SOURCE_DIR="dms-greeter-git-source"
+        SOURCE_DIR="${PACKAGE_NAME}-source"
         NO_LINTIAN="true"
         ;;
-    dgop)
-        # dgop uses pre-built binary from releases
+    dux-gop)
+        # dux-gop uses pre-built binary from releases
         GIT_REPO="duxlabs-dev/dux-gop"
         ;;
     ghostty)
@@ -667,10 +697,10 @@ if [ "$IS_GIT_PACKAGE" = true ] && [ -n "$GIT_REPO" ]; then
             info "quickshell-git Debian base ahead of stable tag (${_QS_PRE} → ${UPSTREAM_VERSION})"
         fi
 
-        if [ "$PACKAGE_NAME" = "dankcalendar-git" ]; then
+        if [ "$PACKAGE_KIND" = "dux-calendar-git" ]; then
             _DC_PRE="$UPSTREAM_VERSION"
             UPSTREAM_VERSION="$(bump_patch_triplet "$UPSTREAM_VERSION")"
-            info "dankcalendar-git Debian base ahead of stable tag (${_DC_PRE} → ${UPSTREAM_VERSION})"
+            info "dux-calendar-git Debian base ahead of stable tag (${_DC_PRE} → ${UPSTREAM_VERSION})"
         fi
 
         if [ "$PACKAGE_NAME" = "dux-files-git" ]; then
@@ -735,7 +765,7 @@ if [ "$IS_GIT_PACKAGE" = true ] && [ -n "$GIT_REPO" ]; then
         success "Changelog written back to $PACKAGE_DIR/debian/changelog"
         
         rm -rf "$SOURCE_DIR"
-        if [ "$PACKAGE_NAME" = "dankcalendar-git" ] || [ "$PACKAGE_NAME" = "dux-files-git" ]; then
+        if [ "$PACKAGE_KIND" = "dux-calendar-git" ] || [ "$PACKAGE_KIND" = "dux-files-git" ]; then
             # Native rules expect core/, assets/, etc. at package root (same as OBS)
             cp -a "$TEMP_CLONE"/. "$BUILD_DIR/"
             rm -rf "$BUILD_DIR/.git"
@@ -785,7 +815,7 @@ if [ "$IS_GIT_PACKAGE" = true ] && [ -n "$GIT_REPO" ]; then
             fi
         fi
 
-        if [ "$PACKAGE_NAME" = "dankcalendar-git" ] || [ "$PACKAGE_NAME" = "dux-files-git" ] || [ "$PACKAGE_NAME" = "dms-greeter-git" ]; then
+        if [ "$PACKAGE_KIND" = "dux-calendar-git" ] || [ "$PACKAGE_KIND" = "dux-files-git" ] || [ "$PACKAGE_KIND" = "dux-greeter-git" ]; then
             if [ -f "$SOURCE_DIR/core/go.mod" ]; then
                 info "Vendoring Go dependencies (Launchpad has no internet access)..."
                 cd "$SOURCE_DIR/core"
@@ -1010,7 +1040,7 @@ fi
 
 # Handle packages that need pre-built binaries downloaded
 cd "$BUILD_DIR"
-case "$PACKAGE_NAME" in
+case "$PACKAGE_KIND" in
     cpptrace)
         info "Downloading cpptrace source..."
         # Get version from changelog
@@ -1022,8 +1052,8 @@ case "$PACKAGE_NAME" in
             success "cpptrace source extracted"
         fi
         ;;
-    danksearch)
-        info "Downloading pre-built binaries for danksearch..."
+    dux-search)
+        info "Downloading pre-built binaries for dux-search..."
         # Get version from changelog (remove ppa suffix for both quilt and native formats)
         # Native: 0.5.2ppa1 -> 0.5.2, Quilt: 0.5.2-1ppa1 -> 0.5.2
         VERSION=$(dpkg-parsechangelog -S Version | sed 's/-[^-]*$//' | sed 's/ppa[0-9]*$//')
@@ -1054,8 +1084,8 @@ case "$PACKAGE_NAME" in
             fi
         fi
         ;;
-    dankcalendar)
-        info "Downloading pre-built binaries and assets for dankcalendar..."
+    dux-calendar)
+        info "Downloading pre-built binaries and assets for dux-calendar..."
         VERSION=$(dpkg-parsechangelog -S Version | sed 's/-[^-]*$//' | sed 's/ppa[0-9]*$//')
         RELEASE_URL="https://github.com/duxlabs-dev/dux-calendar/releases/download/v${VERSION}"
 
@@ -1120,16 +1150,16 @@ case "$PACKAGE_NAME" in
             success "Assets extracted"
         fi
         ;;
-    dms-greeter)
-        info "Downloading vendored release tarball for dms-greeter..."
+    dux-greeter)
+        info "Downloading vendored release tarball for dux-greeter..."
         # Native: 1:2.0.0ppa1 -> 2.0.0
         VERSION=$(dpkg-parsechangelog -S Version | sed 's/^[0-9]*://' | sed 's/-[^-]*$//' | sed 's/ppa[0-9]*$//')
         RELEASE_URL="https://github.com/duxlabs-dev/dux-greeter/releases/download/v${VERSION}"
 
         # Vendored release tarball (submodule + core/vendor); debian/rules builds it offline.
-        if [ ! -f "dms-greeter-source.tar.gz" ]; then
+        if [ ! -f "${PACKAGE_NAME}-source.tar.gz" ]; then
             info "Downloading dank-greeter-${VERSION}.tar.gz..."
-            if ! wget -O dms-greeter-source.tar.gz "${RELEASE_URL}/dank-greeter-${VERSION}.tar.gz"; then
+            if ! wget -O "${PACKAGE_NAME}-source.tar.gz" "${RELEASE_URL}/dank-greeter-${VERSION}.tar.gz"; then
                 error "Failed to download dank-greeter-${VERSION}.tar.gz"
                 exit 1
             fi
@@ -1139,7 +1169,7 @@ case "$PACKAGE_NAME" in
         # Bundle the Go toolchain matching core/go.mod for the offline Launchpad build.
         if ! ls go[0-9]*.linux-amd64.tar.gz >/dev/null 2>&1; then
             GREETER_GOMOD=$(mktemp "$TEMP_BASE/ppa_gomod_XXXXXX")
-            if ! tar -xzOf dms-greeter-source.tar.gz "dank-greeter-${VERSION}/core/go.mod" > "$GREETER_GOMOD"; then
+            if ! tar -xzOf "${PACKAGE_NAME}-source.tar.gz" "dank-greeter-${VERSION}/core/go.mod" > "$GREETER_GOMOD"; then
                 error "core/go.mod not found inside dank-greeter-${VERSION}.tar.gz"
                 exit 1
             fi
@@ -1160,8 +1190,8 @@ case "$PACKAGE_NAME" in
             success "Go toolchain bundled"
         fi
         ;;
-    dgop)
-        info "Downloading pre-built binaries for dgop..."
+    dux-gop)
+        info "Downloading pre-built binaries for dux-gop..."
         # Get version from changelog (remove ppa suffix for both quilt and native formats)
         # Native: 0.1.12ppa1 -> 0.1.12, Quilt: 0.1.12-1ppa1 -> 0.1.12
         VERSION=$(dpkg-parsechangelog -S Version | sed 's/-[^-]*$//' | sed 's/ppa[0-9]*$//')

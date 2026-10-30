@@ -1,7 +1,6 @@
 name: Void Linux XBPS Repository
 
-# LEGACY_MIRROR keeps pre-rebrand conf files working: tools also go to danklinux/current, the
-# greeter to dms/current (shared with dux-shell, ETag-guarded by publish-void-r2.sh).
+# LEGACY_MIRROR: dms/current is shared with dux-shell; publish-void-r2.sh ETag-guards it.
 
 on:
   schedule:
@@ -16,12 +15,12 @@ on:
         required: false
         options:
           - all
-          - dankcalendar
-          - danksearch
-          - dgop
+          - dux-calendar
+          - dux-search
+          - dux-gop
           - dux-files
-          - dms-greeter
-          - dms-greeter-git
+          - dux-greeter
+          - dux-greeter-git
         default: 'all'
       force_rebuild:
         description: 'Force rebuilding packages even if they already exist in the repository'
@@ -76,26 +75,39 @@ jobs:
           case "$EVENT_NAME" in
             repository_dispatch)
               case "$DISPATCH_TYPE" in
-                greeter-git)     PACKAGES="dms-greeter-git" ;;
-                greeter-release) PACKAGES="dms-greeter" ;;
+                greeter-git)     PACKAGES="dux-greeter-git" ;;
+                greeter-release) PACKAGES="dux-greeter" ;;
                 *) echo "Unknown dispatch type: $DISPATCH_TYPE" >&2; exit 1 ;;
               esac
               ;;
             *)
               if [ "$SELECTED" = "all" ]; then
-                PACKAGES="dgop danksearch dankcalendar dux-files dms-greeter-git dms-greeter"
+                # Transitional old-name metas last: xbps-src needs their targets built first.
+                PACKAGES="dux-gop dux-search dux-calendar dux-files dux-greeter-git dux-greeter dgop danksearch dankcalendar dms-greeter-git dms-greeter"
               else
                 PACKAGES="$SELECTED"
               fi
               ;;
           esac
           case " $PACKAGES " in
-            *" dms-greeter"*) GREETER=true ;;
+            *" dux-greeter"*) GREETER=true ;;
             *) GREETER=false ;;
           esac
+          LEGACY=()
+          for pkg in $PACKAGES; do
+            case "$pkg" in
+              dux-gop) LEGACY+=(dgop) ;;
+              dux-search) LEGACY+=(danksearch) ;;
+              dux-calendar) LEGACY+=(dankcalendar) ;;
+              dux-greeter-git) LEGACY+=(dms-greeter-git) ;;
+              dux-greeter) LEGACY+=(dms-greeter) ;;
+            esac
+          done
           echo "packages=$PACKAGES" >> "$GITHUB_OUTPUT"
           echo "greeter=$GREETER" >> "$GITHUB_OUTPUT"
+          echo "legacy=${LEGACY[*]}" >> "$GITHUB_OUTPUT"
           echo "Packages to build: $PACKAGES"
+          echo "Legacy packages:   ${LEGACY[*]}"
 
       - name: Clone dux-greeter
         if: steps.plan.outputs.greeter == 'true'
@@ -179,7 +191,7 @@ jobs:
           build_one() {
             local pkg="$1" ver rev file
             case "$pkg" in
-              dms-greeter|dms-greeter-git)
+              dux-greeter|dux-greeter-git)
                 bash distro/scripts/void/void-build.sh "$pkg" \
                   --source-dir="$GREETER_SRC" "${FORCE_ARGS[@]}"
                 return
@@ -228,21 +240,82 @@ jobs:
         if: steps.build.outputs.publish == 'true'
         run: bash .github/scripts/publish-void-r2.sh publish
 
+      - name: Build legacy packages
+        id: legacy
+        if: env.LEGACY_MIRROR == 'true' && steps.plan.outputs.legacy != ''
+        env:
+          VOID_PACKAGES_DIR: ${{ github.workspace }}/void-packages
+          PACKAGES: ${{ steps.plan.outputs.legacy }}
+          FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'false' }}
+          REPOSITORY_DIR: ${{ github.workspace }}/r2-legacy
+          TEMPLATE_ROOT: ${{ github.workspace }}/distro/void/legacy/srcpkgs
+        run: |
+          mkdir -p "$REPOSITORY_DIR/current"
+          # Already-published legacy objects, so the skip checks see them; the mirror never re-uploads them.
+          aws --endpoint-url "$R2_ENDPOINT" s3 sync "s3://$R2_BUCKET/danklinux/current/" "$REPOSITORY_DIR/current/" \
+            --exclude '*' --include 'dgop-*.xbps' --include 'danksearch-*.xbps' --include 'dankcalendar-*.xbps' --only-show-errors
+          aws --endpoint-url "$R2_ENDPOINT" s3 sync "s3://$R2_BUCKET/dms/current/" "$REPOSITORY_DIR/current/" \
+            --exclude '*' --include 'dms-greeter-*.xbps' --only-show-errors
+
+          FORCE_ARGS=()
+          if [ "$FORCE_REBUILD" = "true" ]; then
+            FORCE_ARGS+=(--force)
+          fi
+
+          build_one() {
+            local pkg="$1" ver rev file
+            # Same names as the transitional metas, which were built and copied out above.
+            rm -rf "$VOID_PACKAGES_DIR/srcpkgs/$pkg" &&
+            cp -R "$TEMPLATE_ROOT/$pkg" "$VOID_PACKAGES_DIR/srcpkgs/" || return 1
+            case "$pkg" in
+              dms-greeter|dms-greeter-git)
+                bash distro/scripts/void/void-build.sh "$pkg" \
+                  --source-dir="$GREETER_SRC" "${FORCE_ARGS[@]}"
+                return
+                ;;
+            esac
+            ver=$(grep -E '^version=' "$VOID_PACKAGES_DIR/srcpkgs/$pkg/template" | cut -d= -f2 | tr -d '"') &&
+            rev=$(grep -E '^revision=' "$VOID_PACKAGES_DIR/srcpkgs/$pkg/template" | cut -d= -f2 | tr -d '"') &&
+            file="${pkg}-${ver}_${rev}.x86_64.xbps" || return 1
+            if [ -f "$REPOSITORY_DIR/current/$file" ] && [ "$FORCE_REBUILD" != "true" ]; then
+              echo "✅ $file already exists, skipping build."
+              return 0
+            fi
+            echo "🔨 Compiling legacy $pkg ($ver)..."
+            (cd "$VOID_PACKAGES_DIR" && ./xbps-src pkg "$pkg") &&
+            rm -f "$REPOSITORY_DIR/current/$file" &&
+            cp -L "$VOID_PACKAGES_DIR/hostdir/binpkgs/$file" "$REPOSITORY_DIR/current/"
+          }
+
+          FAILED=()
+          for pkg in $PACKAGES; do
+            echo "=========================================="
+            echo "Building legacy $pkg"
+            echo "=========================================="
+            if ! build_one "$pkg"; then
+              echo "::error::legacy $pkg failed to build"
+              FAILED+=("$pkg")
+            fi
+          done
+          echo "failed=${FAILED[*]}" >> "$GITHUB_OUTPUT"
+
       - name: Mirror into legacy prefixes
         if: env.LEGACY_MIRROR == 'true'
         env:
           XBPS_PRIVATE_KEY: ${{ secrets.XBPS_PRIVATE_KEY }}
           NEW_REPOSITORY_DIR: ${{ github.workspace }}/r2-repo
+          LEGACY_REPOSITORY_DIR: ${{ github.workspace }}/r2-legacy
         run: |
           shopt -s nullglob
           for legacy in danklinux dms; do
             export R2_PREFIX="$legacy" REPOSITORY_DIR="${{ github.workspace }}/r2-legacy-$legacy"
             bash .github/scripts/publish-void-r2.sh download
 
-            for pkg in "$NEW_REPOSITORY_DIR"/current/*.xbps; do
+            for pkg in "$LEGACY_REPOSITORY_DIR"/current/{dgop,danksearch,dankcalendar,dms-greeter}-*.xbps \
+                       "$NEW_REPOSITORY_DIR"/current/dux-files-*.xbps; do
               name="$(basename "$pkg")"
               case "$name" in
-                dms-greeter*) target=dms ;;
+                dms-greeter-*) target=dms ;;
                 *) target=danklinux ;;
               esac
               # Never replace a legacy object: a rebuilt pkgver is not byte-identical.
@@ -260,9 +333,10 @@ jobs:
           done
 
       - name: Fail on package build errors
-        if: always() && steps.build.outputs.failed != ''
+        if: always() && (steps.build.outputs.failed != '' || steps.legacy.outputs.failed != '')
         env:
           FAILED: ${{ steps.build.outputs.failed }}
+          LEGACY_FAILED: ${{ steps.legacy.outputs.failed }}
         run: |
-          echo "::error::Failed to build: $FAILED"
+          echo "::error::Failed to build: ${FAILED:-none}; legacy: ${LEGACY_FAILED:-none}"
           exit 1

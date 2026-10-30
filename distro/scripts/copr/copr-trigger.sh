@@ -57,16 +57,48 @@ ensure_scm() {
     || copr-cli add-package-scm "$COPR_OWNER/$COPR_PROJECT" "${scm_args[@]}"
 }
 
+declare -A LEGACY_NAME=(
+    [dux-gop]=dgop
+    [dux-search]=danksearch
+    [dux-calendar]=dankcalendar
+    [dux-calendar-git]=dankcalendar-git
+    [dux-greeter]=dms-greeter
+    [dux-greeter-git]=dms-greeter-git
+)
+LEGACY_OWNER=avengemedia
+
+published_here() {
+    local name="$1" new
+    if [[ "$COPR_OWNER" == "$LEGACY_OWNER" ]]; then
+        [[ -z "${LEGACY_NAME[$name]:-}" ]]
+        return
+    fi
+    for new in "${!LEGACY_NAME[@]}"; do
+        [[ "${LEGACY_NAME[$new]}" == "$name" ]] && return 1
+    done
+    return 0
+}
+
 # COPR_CHROOTS: optional space-separated chroot list, limits every build in this run
 CHROOT_ARGS=()
 for chroot in ${COPR_CHROOTS:-}; do
     CHROOT_ARGS+=(-r "$chroot")
 done
 
+BUILDS_ATTEMPTED=0
+BUILDS_SKIPPED=0
+
 trigger_build() {
     local package_name="$1"
     local spec_file="$2"
-    
+
+    if ! published_here "$package_name"; then
+        echo "⏭️  Skipping $package_name: not published to $COPR_OWNER"
+        BUILDS_SKIPPED=$((BUILDS_SKIPPED + 1))
+        return 1
+    fi
+    BUILDS_ATTEMPTED=$((BUILDS_ATTEMPTED + 1))
+
     echo "📦 Building $package_name... ${COPR_CHROOTS:+(chroots: $COPR_CHROOTS)}"
 
     if ! ensure_scm "$package_name" "$spec_file"; then
@@ -91,6 +123,7 @@ echo "🔍 Checking for changed spec files..."
 if [[ -n "${MANUAL_PACKAGE:-}" ]]; then
     echo "📦 Manual package specified: $MANUAL_PACKAGE"
     FORCE_PACKAGE="$MANUAL_PACKAGE"
+    [[ "$COPR_OWNER" == "$LEGACY_OWNER" ]] && FORCE_PACKAGE="${LEGACY_NAME[$MANUAL_PACKAGE]:-$MANUAL_PACKAGE}"
 else
     FORCE_PACKAGE=""
 fi
@@ -110,15 +143,21 @@ fi
 # Package build flags
 BUILD_QUICKSHELL=false
 BUILD_QUICKSHELL_GIT=false
+BUILD_DUX_GOP=false
 BUILD_DGOP=false
 BUILD_MATUGEN=false
 BUILD_GHOSTTY=false
 BUILD_MATERIAL_SYMBOLS=false
+BUILD_DUX_SEARCH=false
+BUILD_DUX_CALENDAR=false
+BUILD_DUX_CALENDAR_GIT=false
 BUILD_DANKSEARCH=false
 BUILD_DANKCALENDAR=false
 BUILD_DANKCALENDAR_GIT=false
 BUILD_DUX_FILES=false
 BUILD_DUX_FILES_GIT=false
+BUILD_DUX_GREETER=false
+BUILD_DUX_GREETER_GIT=false
 BUILD_DMS_GREETER=false
 BUILD_DMS_GREETER_GIT=false
 BUILD_CLI11=false
@@ -135,15 +174,21 @@ if [[ "${FORCE_PACKAGE:-}" == "all" ]]; then
     echo "📦 Force-all: enabling builds for every package"
     BUILD_QUICKSHELL=true
     BUILD_QUICKSHELL_GIT=true
+    BUILD_DUX_GOP=true
     BUILD_DGOP=true
     BUILD_MATUGEN=true
     BUILD_GHOSTTY=true
     BUILD_MATERIAL_SYMBOLS=true
+    BUILD_DUX_SEARCH=true
+    BUILD_DUX_CALENDAR=true
+    BUILD_DUX_CALENDAR_GIT=true
     BUILD_DANKSEARCH=true
     BUILD_DANKCALENDAR=true
     BUILD_DANKCALENDAR_GIT=true
     BUILD_DUX_FILES=true
     BUILD_DUX_FILES_GIT=true
+    BUILD_DUX_GREETER=true
+    BUILD_DUX_GREETER_GIT=true
     BUILD_DMS_GREETER=true
     BUILD_DMS_GREETER_GIT=true
     BUILD_CLI11=true
@@ -165,6 +210,10 @@ if echo "$CHANGED_FILES" | grep -q "distro/fedora/quickshell/quickshell-git.spec
     BUILD_QUICKSHELL_GIT=true
 fi
 
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-gop/dux-gop.spec"; then
+    BUILD_DUX_GOP=true
+fi
+
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/dgop/dgop.spec"; then
     BUILD_DGOP=true
 fi
@@ -179,6 +228,19 @@ fi
 
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/fonts/material-symbols-fonts.spec"; then
     BUILD_MATERIAL_SYMBOLS=true
+fi
+
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-search/dux-search.spec"; then
+    BUILD_DUX_SEARCH=true
+fi
+
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-calendar/dux-calendar.spec"; then
+    BUILD_DUX_CALENDAR=true
+fi
+
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-calendar/dux-calendar-git.spec"; then
+    BUILD_DUX_CALENDAR=true
+    BUILD_DUX_CALENDAR_GIT=true
 fi
 
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/danksearch/danksearch.spec"; then
@@ -203,11 +265,19 @@ if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-files/dux-files-git.spec";
     BUILD_DUX_FILES_GIT=true
 fi
 
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-greeter/dux-greeter.spec"; then
+    BUILD_DUX_GREETER=true
+fi
+
+# -git spec changes only rebuild -git (stable has its own spec)
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-greeter/dux-greeter-git.spec"; then
+    BUILD_DUX_GREETER_GIT=true
+fi
+
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/dms-greeter/dms-greeter.spec"; then
     BUILD_DMS_GREETER=true
 fi
 
-# -git spec changes only rebuild -git (stable has its own spec)
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/dms-greeter/dms-greeter-git.spec"; then
     BUILD_DMS_GREETER_GIT=true
 fi
@@ -251,15 +321,21 @@ if [[ -z "$CHANGED_FILES" ]]; then
 
     echo "$UNCOMMITTED" | grep -q "distro/fedora/quickshell/quickshell.spec" && BUILD_QUICKSHELL=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/quickshell/quickshell-git.spec" && BUILD_QUICKSHELL_GIT=true
-    echo "$UNCOMMITTED" | grep -q "distro/fedora/dgop/dgop.spec" && BUILD_DGOP=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-gop/dux-gop.spec" && BUILD_DUX_GOP=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/matugen/matugen.spec" && BUILD_MATUGEN=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/ghostty/ghostty.spec" && BUILD_GHOSTTY=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/fonts/material-symbols-fonts.spec" && BUILD_MATERIAL_SYMBOLS=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-search/dux-search.spec" && BUILD_DUX_SEARCH=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-calendar/dux-calendar.spec" && BUILD_DUX_CALENDAR=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-calendar/dux-calendar-git.spec" && BUILD_DUX_CALENDAR_GIT=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-files/dux-files.spec" && BUILD_DUX_FILES=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-files/dux-files-git.spec" && BUILD_DUX_FILES_GIT=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-greeter/dux-greeter.spec" && BUILD_DUX_GREETER=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-greeter/dux-greeter-git.spec" && BUILD_DUX_GREETER_GIT=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dgop/dgop.spec" && BUILD_DGOP=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/danksearch/danksearch.spec" && BUILD_DANKSEARCH=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dankcalendar/dankcalendar.spec" && BUILD_DANKCALENDAR=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dankcalendar/dankcalendar-git.spec" && BUILD_DANKCALENDAR_GIT=true
-    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-files/dux-files.spec" && BUILD_DUX_FILES=true
-    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-files/dux-files-git.spec" && BUILD_DUX_FILES_GIT=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dms-greeter/dms-greeter.spec" && BUILD_DMS_GREETER=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dms-greeter/dms-greeter-git.spec" && BUILD_DMS_GREETER_GIT=true
 
@@ -286,6 +362,10 @@ if [[ "$BUILD_QUICKSHELL_GIT" == true ]] || [[ "$FORCE_PACKAGE" == "quickshell-g
     trigger_build "quickshell-git" "distro/fedora/quickshell/quickshell-git.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
 fi
 
+if [[ "$BUILD_DUX_GOP" == true ]] || [[ "$FORCE_PACKAGE" == "dux-gop" ]]; then
+    trigger_build "dux-gop" "distro/fedora/dux-gop/dux-gop.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
 if [[ "$BUILD_DGOP" == true ]] || [[ "$FORCE_PACKAGE" == "dgop" ]]; then
     trigger_build "dgop" "distro/fedora/dgop/dgop.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
 fi
@@ -300,6 +380,18 @@ fi
 
 if [[ "$BUILD_MATERIAL_SYMBOLS" == true ]] || [[ "$FORCE_PACKAGE" == "material-symbols-fonts" ]]; then
     trigger_build "material-symbols-fonts" "distro/fedora/fonts/material-symbols-fonts.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
+if [[ "$BUILD_DUX_SEARCH" == true ]] || [[ "$FORCE_PACKAGE" == "dux-search" ]]; then
+    trigger_build "dux-search" "distro/fedora/dux-search/dux-search.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
+if [[ "$BUILD_DUX_CALENDAR" == true ]] || [[ "$FORCE_PACKAGE" == "dux-calendar" ]]; then
+    trigger_build "dux-calendar" "distro/fedora/dux-calendar/dux-calendar.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
+if [[ "$BUILD_DUX_CALENDAR_GIT" == true ]] || [[ "$FORCE_PACKAGE" == "dux-calendar-git" ]]; then
+    trigger_build "dux-calendar-git" "distro/fedora/dux-calendar/dux-calendar-git.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
 fi
 
 if [[ "$BUILD_DANKSEARCH" == true ]] || [[ "$FORCE_PACKAGE" == "danksearch" ]]; then
@@ -320,6 +412,14 @@ fi
 
 if [[ "$BUILD_DUX_FILES_GIT" == true ]] || [[ "$FORCE_PACKAGE" == "dux-files-git" ]]; then
     trigger_build "dux-files-git" "distro/fedora/dux-files/dux-files-git.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
+if [[ "$BUILD_DUX_GREETER" == true ]] || [[ "$FORCE_PACKAGE" == "dux-greeter" ]]; then
+    trigger_build "dux-greeter" "distro/fedora/dux-greeter/dux-greeter.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
+if [[ "$BUILD_DUX_GREETER_GIT" == true ]] || [[ "$FORCE_PACKAGE" == "dux-greeter-git" ]]; then
+    trigger_build "dux-greeter-git" "distro/fedora/dux-greeter/dux-greeter-git.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
 fi
 
 if [[ "$BUILD_DMS_GREETER" == true ]] || [[ "$FORCE_PACKAGE" == "dms-greeter" ]]; then
@@ -371,10 +471,10 @@ else
     echo "ℹ️  No builds triggered (no package changes detected)"
 fi
 
-# Fail visibly if packages were expected to build but none were triggered.
-# This surfaces copr-cli errors, SCM misconfiguration, or auth failures
-# instead of letting the job exit green while silently doing nothing.
-if [[ $BUILDS_TRIGGERED -eq 0 ]] && { [[ -n "$CHANGED_FILES" ]] || [[ -n "${FORCE_PACKAGE:-}" ]]; }; then
+# Fail if builds were expected but none triggered, so copr-cli, SCM or auth errors do not exit green
+# A leg whose only spec changes belong to the other owner has nothing to build
+if [[ $BUILDS_TRIGGERED -eq 0 ]] && { [[ $BUILDS_ATTEMPTED -gt 0 ]] || [[ $BUILDS_SKIPPED -eq 0 ]]; } \
+    && { [[ -n "$CHANGED_FILES" ]] || [[ -n "${FORCE_PACKAGE:-}" ]]; }; then
     echo ""
     echo "❌ Builds were expected (changed files or forced package detected) but none were triggered."
     echo "   Check copr-cli output above for errors, and verify COPR SCM configuration."

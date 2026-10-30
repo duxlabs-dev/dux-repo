@@ -50,6 +50,35 @@ release_has_asset() {
     echo "$data" | jq -e --arg a "$asset" '.assets // [] | map(.name) | index($a) != null' >/dev/null 2>&1
 }
 
+# A twin bumped in a run that skips avengemedia would never be built there, so it waits for one that doesn't
+SYNC_LEGACY=false
+[[ "${COPR_OWNERS:-all}" != all && "${COPR_OWNERS:-all}" != avengemedia ]] || SYNC_LEGACY=true
+declare -A LEGACY_TWIN=(
+    [dux-gop/dux-gop.spec]=dgop/dgop.spec
+    [dux-search/dux-search.spec]=danksearch/danksearch.spec
+    [dux-calendar/dux-calendar.spec]=dankcalendar/dankcalendar.spec
+    [dux-calendar/dux-calendar-git.spec]=dankcalendar/dankcalendar-git.spec
+    [dux-greeter/dux-greeter.spec]=dms-greeter/dms-greeter.spec
+    [dux-greeter/dux-greeter-git.spec]=dms-greeter/dms-greeter-git.spec
+)
+
+sync_legacy_spec() {
+    local new="$1" old="$2" key line synced=false
+    for key in 'Version:' '%global tag ' '%global commit ' '%global commits ' '%global snapdate ' '%global common_commit '; do
+        line=$(grep -m1 "^$key" "$new") || continue
+        grep -q "^$key" "$old" || continue
+        grep -qxF "$line" "$old" && continue
+        sed -i "s/^$key.*/$(printf '%s' "$line" | sed 's/[&/\\]/\\&/g')/" "$old"
+        [[ "$key" == 'Version:' ]] && reset_release "$old" "$(grep -oP '^Version:\s+\K\S+' "$old")"
+        synced=true
+    done
+    if [[ "$synced" == true ]]; then
+        echo "   ✨ $old synced to $new"
+        UPDATED=$((UPDATED + 1))
+        UPDATED_PACKAGES+=("$old: synced to $new")
+    fi
+}
+
 # Track if any packages were updated
 UPDATED=0
 UPDATED_PACKAGES=()
@@ -298,12 +327,12 @@ else
 fi
 
 # ============================================================================
-# DGOP (Your package!)
+# DUX-GOP
 # ============================================================================
 echo ""
-echo "📦 Checking dgop..."
+echo "📦 Checking dux-gop..."
 
-SPEC_FILE="dgop/dgop.spec"
+SPEC_FILE="dux-gop/dux-gop.spec"
 UPSTREAM_REPO="duxlabs-dev/dux-gop"
 
 # Get current version from simplified spec
@@ -325,7 +354,7 @@ if [[ -n "$LATEST_VERSION" ]]; then
         reset_release "$SPEC_FILE" "$LATEST_VERSION"
 
         UPDATED=$((UPDATED + 1))
-        UPDATED_PACKAGES+=("dgop: $CURRENT_VERSION → $LATEST_VERSION")
+        UPDATED_PACKAGES+=("dux-gop: $CURRENT_VERSION → $LATEST_VERSION")
     else
         echo "   ✓ Already up to date"
     fi
@@ -406,12 +435,12 @@ else
 fi
 
 # ============================================================================
-# DANKSEARCH
+# DUX-SEARCH
 # ============================================================================
 echo ""
-echo "📦 Checking danksearch..."
+echo "📦 Checking dux-search..."
 
-SPEC_FILE="danksearch/danksearch.spec"
+SPEC_FILE="dux-search/dux-search.spec"
 UPSTREAM_REPO="duxlabs-dev/dux-search"
 
 # Get current version from spec
@@ -433,7 +462,7 @@ if [[ -n "$LATEST_VERSION" ]]; then
         reset_release "$SPEC_FILE" "$LATEST_VERSION"
 
         UPDATED=$((UPDATED + 1))
-        UPDATED_PACKAGES+=("danksearch: $CURRENT_VERSION → $LATEST_VERSION")
+        UPDATED_PACKAGES+=("dux-search: $CURRENT_VERSION → $LATEST_VERSION")
     else
         echo "   ✓ Already up to date"
     fi
@@ -442,12 +471,12 @@ else
 fi
 
 # ============================================================================
-# DANKCALENDAR (Stable Release)
+# DUX-CALENDAR (Stable Release)
 # ============================================================================
 echo ""
-echo "📦 Checking dankcalendar..."
+echo "📦 Checking dux-calendar..."
 
-SPEC_FILE="dankcalendar/dankcalendar.spec"
+SPEC_FILE="dux-calendar/dux-calendar.spec"
 UPSTREAM_REPO="duxlabs-dev/dux-calendar"
 
 CURRENT_VERSION=$(grep -oP '^Version:\s+\K[0-9.]+' "$SPEC_FILE" || echo "unknown")
@@ -466,7 +495,7 @@ if [[ -n "$LATEST_VERSION" ]]; then
         reset_release "$SPEC_FILE" "$LATEST_VERSION"
 
         UPDATED=$((UPDATED + 1))
-        UPDATED_PACKAGES+=("dankcalendar: $CURRENT_VERSION → $LATEST_VERSION")
+        UPDATED_PACKAGES+=("dux-calendar: $CURRENT_VERSION → $LATEST_VERSION")
     else
         echo "   ✓ Already up to date"
     fi
@@ -475,12 +504,12 @@ else
 fi
 
 # ============================================================================
-# DANKCALENDAR-GIT (Latest Commit)
+# DUX-CALENDAR-GIT (Latest Commit)
 # ============================================================================
 echo ""
-echo "📦 Checking dankcalendar-git (development)..."
+echo "📦 Checking dux-calendar-git (development)..."
 
-SPEC_FILE="dankcalendar/dankcalendar-git.spec"
+SPEC_FILE="dux-calendar/dux-calendar-git.spec"
 UPSTREAM_REPO="duxlabs-dev/dux-calendar"
 
 TAG_UPDATED=false
@@ -495,7 +524,7 @@ if [[ -n "$STABLE_REL_VER" ]]; then
         sed -i "s/^%global tag\s\+.*/%global tag         $DESIRED_GIT_TAG/" "$SPEC_FILE"
         TAG_UPDATED=true
         UPDATED=$((UPDATED + 1))
-        UPDATED_PACKAGES+=("dankcalendar-git: tag $CURRENT_GIT_TAG → $DESIRED_GIT_TAG")
+        UPDATED_PACKAGES+=("dux-calendar-git: tag $CURRENT_GIT_TAG → $DESIRED_GIT_TAG")
     fi
 else
     echo "   ⚠ Could not fetch stable release for tag sync (skipping %global tag bump)"
@@ -544,7 +573,7 @@ if [[ -n "$LATEST_COMMIT" ]]; then
         fi
 
         UPDATED=$((UPDATED + 1))
-        UPDATED_PACKAGES+=("dankcalendar-git: ${CURRENT_COMMIT:0:7} → ${LATEST_SHORT_COMMIT}")
+        UPDATED_PACKAGES+=("dux-calendar-git: ${CURRENT_COMMIT:0:7} → ${LATEST_SHORT_COMMIT}")
     else
         if [[ -n "$REPO_COMMIT_TOTAL" && "$REPO_COMMIT_TOTAL" != "0" ]]; then
             CURRENT_COUNT=$(grep -oP '^%global commits\s+\K[0-9]+' "$SPEC_FILE" || echo "0")
@@ -552,7 +581,7 @@ if [[ -n "$LATEST_COMMIT" ]]; then
                 echo "   ✨ Resync commit index: $CURRENT_COUNT → $REPO_COMMIT_TOTAL (PPA/GitHub total)"
                 sed -i "s/^%global commits\s\+.*/%global commits     $REPO_COMMIT_TOTAL/" "$SPEC_FILE"
                 UPDATED=$((UPDATED + 1))
-                UPDATED_PACKAGES+=("dankcalendar-git: commit index → $REPO_COMMIT_TOTAL")
+                UPDATED_PACKAGES+=("dux-calendar-git: commit index → $REPO_COMMIT_TOTAL")
             fi
         fi
         if [[ "$TAG_UPDATED" == true ]]; then
@@ -566,36 +595,40 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# OpenSUSE dankcalendar-git: keep Version in sync with Fedora git spec.
+# OpenSUSE dux-calendar-git: keep Version in sync with Fedora git spec.
 # ---------------------------------------------------------------------------
-echo ""
-echo "📦 Syncing OpenSUSE dankcalendar-git.spec..."
+FEDORA_GIT_SPEC="$REPO_ROOT/distro/fedora/dux-calendar/dux-calendar-git.spec"
+OBS_GIT_SPECS=(dux-calendar-git)
+[[ "$SYNC_LEGACY" != true ]] || OBS_GIT_SPECS+=(dankcalendar-git)
 
-FEDORA_GIT_SPEC="$REPO_ROOT/distro/fedora/dankcalendar/dankcalendar-git.spec"
-OBS_SPEC="$REPO_ROOT/distro/opensuse/dankcalendar-git.spec"
+for obs_name in "${OBS_GIT_SPECS[@]}"; do
+    echo ""
+    echo "📦 Syncing OpenSUSE $obs_name.spec..."
+    OBS_SPEC="$REPO_ROOT/distro/opensuse/$obs_name.spec"
 
-if [[ -f "$FEDORA_GIT_SPEC" && -f "$OBS_SPEC" ]]; then
-    FG_TAG=$(grep -oP '^%global tag\s+\K[0-9.]+' "$FEDORA_GIT_SPEC" || echo "")
-    FG_COMMIT=$(grep -oP '^%global commit\s+\K[a-f0-9]+' "$FEDORA_GIT_SPEC" || echo "")
-    FG_COMMITS=$(grep -oP '^%global commits\s+\K[0-9]+' "$FEDORA_GIT_SPEC" || echo "")
-    if [[ -n "$FG_TAG" && -n "$FG_COMMIT" && -n "$FG_COMMITS" ]]; then
-        SHORT_HASH="${FG_COMMIT:0:8}"
-        NEW_OBS_VER="${FG_TAG}+git${FG_COMMITS}.${SHORT_HASH}"
-        CUR_OBS_VER=$(grep -oP '^Version:\s+\K\S+' "$OBS_SPEC" || echo "")
-        if [[ "$CUR_OBS_VER" != "$NEW_OBS_VER" ]]; then
-            echo "   ✨ OpenSUSE Version: $CUR_OBS_VER → $NEW_OBS_VER"
-            sed -i "s/^Version:.*/Version:        $NEW_OBS_VER/" "$OBS_SPEC"
-            UPDATED=$((UPDATED + 1))
-            UPDATED_PACKAGES+=("opensuse/dankcalendar-git: $CUR_OBS_VER → $NEW_OBS_VER")
+    if [[ -f "$FEDORA_GIT_SPEC" && -f "$OBS_SPEC" ]]; then
+        FG_TAG=$(grep -oP '^%global tag\s+\K[0-9.]+' "$FEDORA_GIT_SPEC" || echo "")
+        FG_COMMIT=$(grep -oP '^%global commit\s+\K[a-f0-9]+' "$FEDORA_GIT_SPEC" || echo "")
+        FG_COMMITS=$(grep -oP '^%global commits\s+\K[0-9]+' "$FEDORA_GIT_SPEC" || echo "")
+        if [[ -n "$FG_TAG" && -n "$FG_COMMIT" && -n "$FG_COMMITS" ]]; then
+            SHORT_HASH="${FG_COMMIT:0:8}"
+            NEW_OBS_VER="${FG_TAG}+git${FG_COMMITS}.${SHORT_HASH}"
+            CUR_OBS_VER=$(grep -oP '^Version:\s+\K\S+' "$OBS_SPEC" || echo "")
+            if [[ "$CUR_OBS_VER" != "$NEW_OBS_VER" ]]; then
+                echo "   ✨ OpenSUSE Version: $CUR_OBS_VER → $NEW_OBS_VER"
+                sed -i "s/^Version:.*/Version:        $NEW_OBS_VER/" "$OBS_SPEC"
+                UPDATED=$((UPDATED + 1))
+                UPDATED_PACKAGES+=("opensuse/$obs_name: $CUR_OBS_VER → $NEW_OBS_VER")
+            else
+                echo "   ✓ OpenSUSE Version already matches Fedora ($NEW_OBS_VER)"
+            fi
         else
-            echo "   ✓ OpenSUSE Version already matches Fedora ($NEW_OBS_VER)"
+            echo "   ⚠ Missing %global tag/commit/commits in Fedora spec; skip OpenSUSE sync"
         fi
     else
-        echo "   ⚠ Missing %global tag/commit/commits in Fedora spec; skip OpenSUSE sync"
+        echo "   ⚠ Fedora or OpenSUSE $obs_name spec missing"
     fi
-else
-    echo "   ⚠ Fedora or OpenSUSE dankcalendar-git spec missing"
-fi
+done
 
 # ============================================================================
 # DUX-FILES (Stable Release)
@@ -754,12 +787,12 @@ else
 fi
 
 # ============================================================================
-# DMS-GREETER (Stable Release)
+# DUX-GREETER (Stable Release)
 # ============================================================================
 echo ""
-echo "📦 Checking dms-greeter..."
+echo "📦 Checking dux-greeter..."
 
-SPEC_FILE="dms-greeter/dms-greeter.spec"
+SPEC_FILE="dux-greeter/dux-greeter.spec"
 UPSTREAM_REPO="duxlabs-dev/dux-greeter"
 
 CURRENT_VERSION=$(grep -oP '^Version:\s+\K[0-9.]+' "$SPEC_FILE" || echo "unknown")
@@ -784,19 +817,19 @@ if [[ -n "$LATEST_VERSION" ]]; then
         reset_release "$SPEC_FILE" "$LATEST_VERSION"
 
         UPDATED=$((UPDATED + 1))
-        UPDATED_PACKAGES+=("dms-greeter: $CURRENT_VERSION → $LATEST_VERSION")
+        UPDATED_PACKAGES+=("dux-greeter: $CURRENT_VERSION → $LATEST_VERSION")
     fi
 else
     echo "   ⚠ Could not fetch latest version"
 fi
 
 # ============================================================================
-# DMS-GREETER-GIT (Latest Commit)
+# DUX-GREETER-GIT (Latest Commit)
 # ============================================================================
 echo ""
-echo "📦 Checking dms-greeter-git (development)..."
+echo "📦 Checking dux-greeter-git (development)..."
 
-SPEC_FILE="dms-greeter/dms-greeter-git.spec"
+SPEC_FILE="dux-greeter/dux-greeter-git.spec"
 UPSTREAM_REPO="duxlabs-dev/dux-greeter"
 
 TAG_UPDATED=false
@@ -812,7 +845,7 @@ if [[ -n "$STABLE_REL_VER" ]]; then
             sed -i "s/^%global tag\s\+.*/%global tag         $DESIRED_GIT_TAG/" "$SPEC_FILE"
             TAG_UPDATED=true
             UPDATED=$((UPDATED + 1))
-            UPDATED_PACKAGES+=("dms-greeter-git: tag $CURRENT_GIT_TAG → $DESIRED_GIT_TAG")
+            UPDATED_PACKAGES+=("dux-greeter-git: tag $CURRENT_GIT_TAG → $DESIRED_GIT_TAG")
         else
             echo "   ⚠ stable+patch $DESIRED_GIT_TAG is not newer than %global tag $CURRENT_GIT_TAG; keeping it"
         fi
@@ -864,7 +897,7 @@ if [[ -n "$LATEST_COMMIT" ]]; then
             echo "   dux-qml-common pinned: ${COMMON_COMMIT:0:7}"
 
             UPDATED=$((UPDATED + 1))
-            UPDATED_PACKAGES+=("dms-greeter-git: ${CURRENT_COMMIT:0:7} → ${LATEST_SHORT_COMMIT}")
+            UPDATED_PACKAGES+=("dux-greeter-git: ${CURRENT_COMMIT:0:7} → ${LATEST_SHORT_COMMIT}")
         fi
     else
         if [[ -n "$REPO_COMMIT_TOTAL" && "$REPO_COMMIT_TOTAL" != "0" ]]; then
@@ -873,7 +906,7 @@ if [[ -n "$LATEST_COMMIT" ]]; then
                 echo "   ✨ Resync commit index: $CURRENT_COUNT → $REPO_COMMIT_TOTAL (PPA/GitHub total)"
                 sed -i "s/^%global commits\s\+.*/%global commits     $REPO_COMMIT_TOTAL/" "$SPEC_FILE"
                 UPDATED=$((UPDATED + 1))
-                UPDATED_PACKAGES+=("dms-greeter-git: commit index → $REPO_COMMIT_TOTAL")
+                UPDATED_PACKAGES+=("dux-greeter-git: commit index → $REPO_COMMIT_TOTAL")
             fi
         fi
         if [[ "$TAG_UPDATED" == true ]]; then
@@ -884,6 +917,14 @@ if [[ -n "$LATEST_COMMIT" ]]; then
     fi
 else
     echo "   ⚠ Could not fetch latest commit"
+fi
+
+if [[ "$SYNC_LEGACY" == true ]]; then
+    echo ""
+    echo "📦 Syncing legacy-name specs..."
+    for new_spec in "${!LEGACY_TWIN[@]}"; do
+        sync_legacy_spec "$new_spec" "${LEGACY_TWIN[$new_spec]}"
+    done
 fi
 
 # ============================================================================
@@ -911,6 +952,8 @@ _copr_bump_spec_release() {
         rpmdev-bumpspec -c "ci: COPR rebuild bump (workflow)" "$spec_path"
     done
     echo "✓ Bumped ${COPR_REBUILD_COUNT}x: $spec_rel"
+    local twin="${LEGACY_TWIN[${spec_rel#distro/fedora/}]:-}"
+    [[ -z "$twin" || "$SYNC_LEGACY" != true ]] || _copr_bump_spec_release "distro/fedora/$twin"
 }
 
 if [[ -n "${COPR_REBUILD_COUNT:-}" || -n "${COPR_REBUILD_PACKAGE:-}" ]]; then
@@ -930,39 +973,39 @@ if [[ -n "${COPR_REBUILD_COUNT:-}" || -n "${COPR_REBUILD_PACKAGE:-}" ]]; then
     ALL_SPECS_BUMP=(
         distro/fedora/quickshell/quickshell.spec
         distro/fedora/quickshell/quickshell-git.spec
-        distro/fedora/dgop/dgop.spec
+        distro/fedora/dux-gop/dux-gop.spec
         distro/fedora/matugen/matugen.spec
         distro/fedora/ghostty/ghostty.spec
         distro/fedora/fonts/material-symbols-fonts.spec
-        distro/fedora/danksearch/danksearch.spec
+        distro/fedora/dux-search/dux-search.spec
         distro/fedora/cli11/cli11.spec
         distro/fedora/qt6ct-kde/qt6ct-kde.spec
         distro/fedora/cpptrace/cpptrace.spec
-        distro/fedora/dankcalendar/dankcalendar.spec
-        distro/fedora/dankcalendar/dankcalendar-git.spec
+        distro/fedora/dux-calendar/dux-calendar.spec
+        distro/fedora/dux-calendar/dux-calendar-git.spec
         distro/fedora/dux-files/dux-files.spec
         distro/fedora/dux-files/dux-files-git.spec
-        distro/fedora/dms-greeter/dms-greeter.spec
-        distro/fedora/dms-greeter/dms-greeter-git.spec
+        distro/fedora/dux-greeter/dux-greeter.spec
+        distro/fedora/dux-greeter/dux-greeter-git.spec
     )
 
     case "${COPR_REBUILD_PACKAGE}" in
         quickshell) _copr_bump_spec_release distro/fedora/quickshell/quickshell.spec ;;
         quickshell-git) _copr_bump_spec_release distro/fedora/quickshell/quickshell-git.spec ;;
-        dgop) _copr_bump_spec_release distro/fedora/dgop/dgop.spec ;;
+        dux-gop) _copr_bump_spec_release distro/fedora/dux-gop/dux-gop.spec ;;
         matugen) _copr_bump_spec_release distro/fedora/matugen/matugen.spec ;;
         ghostty) _copr_bump_spec_release distro/fedora/ghostty/ghostty.spec ;;
         material-symbols-fonts) _copr_bump_spec_release distro/fedora/fonts/material-symbols-fonts.spec ;;
-        danksearch) _copr_bump_spec_release distro/fedora/danksearch/danksearch.spec ;;
+        dux-search) _copr_bump_spec_release distro/fedora/dux-search/dux-search.spec ;;
         cli11) _copr_bump_spec_release distro/fedora/cli11/cli11.spec ;;
         qt6ct-kde) _copr_bump_spec_release distro/fedora/qt6ct-kde/qt6ct-kde.spec ;;
         cpptrace) _copr_bump_spec_release distro/fedora/cpptrace/cpptrace.spec ;;
-        dankcalendar) _copr_bump_spec_release distro/fedora/dankcalendar/dankcalendar.spec ;;
-        dankcalendar-git) _copr_bump_spec_release distro/fedora/dankcalendar/dankcalendar-git.spec ;;
+        dux-calendar) _copr_bump_spec_release distro/fedora/dux-calendar/dux-calendar.spec ;;
+        dux-calendar-git) _copr_bump_spec_release distro/fedora/dux-calendar/dux-calendar-git.spec ;;
         dux-files) _copr_bump_spec_release distro/fedora/dux-files/dux-files.spec ;;
         dux-files-git) _copr_bump_spec_release distro/fedora/dux-files/dux-files-git.spec ;;
-        dms-greeter) _copr_bump_spec_release distro/fedora/dms-greeter/dms-greeter.spec ;;
-        dms-greeter-git) _copr_bump_spec_release distro/fedora/dms-greeter/dms-greeter-git.spec ;;
+        dux-greeter) _copr_bump_spec_release distro/fedora/dux-greeter/dux-greeter.spec ;;
+        dux-greeter-git) _copr_bump_spec_release distro/fedora/dux-greeter/dux-greeter-git.spec ;;
         all)
             for rel in "${ALL_SPECS_BUMP[@]}"; do
                 _copr_bump_spec_release "$rel"

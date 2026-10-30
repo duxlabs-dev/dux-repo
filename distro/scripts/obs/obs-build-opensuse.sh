@@ -266,11 +266,12 @@ else
         DOWNLOAD_URL="${URL_TEMPLATE//\{version\}/$BASE_VERSION}"
     else
         # GitHub release - try multiple URL patterns
-        DOWNLOAD_URL="https://github.com/$UPSTREAM_REPO/releases/download/v${BASE_VERSION}/${PACKAGE}-${BASE_VERSION}.tar.gz"
+        RELEASE_TARBALL=$(get_release_tarball "$PACKAGE" "$BASE_VERSION" "${PACKAGE}-${BASE_VERSION}.tar.gz")
+        DOWNLOAD_URL="https://github.com/$UPSTREAM_REPO/releases/download/v${BASE_VERSION}/${RELEASE_TARBALL}"
 
         # Try without 'v' prefix if first attempt fails
         if ! curl -sL -f -I "$DOWNLOAD_URL" &>/dev/null; then
-            DOWNLOAD_URL="https://github.com/$UPSTREAM_REPO/releases/download/${BASE_VERSION}/${PACKAGE}-${BASE_VERSION}.tar.gz"
+            DOWNLOAD_URL="https://github.com/$UPSTREAM_REPO/releases/download/${BASE_VERSION}/${RELEASE_TARBALL}"
 
             # Try GitHub's automatic source archive as final fallback
             if ! curl -sL -f -I "$DOWNLOAD_URL" &>/dev/null; then
@@ -700,8 +701,10 @@ cp "$SPEC_FILE" "$OUTPUT_SPEC"
 # Update Version field
 sed -i "s/^Version:.*/Version:        $BASE_VERSION/" "$OUTPUT_SPEC"
 
-# Update Release field for rebuilds
-if [[ -n "$REBUILD_NUM" ]]; then
+# A Release with OBS counters carries a floor above a renamed predecessor; keep it
+if grep -q '^Release:.*<CI_CNT>' "$OUTPUT_SPEC"; then
+    log_info "Keeping OBS counter Release: $(grep -m1 '^Release:' "$OUTPUT_SPEC")"
+elif [[ -n "$REBUILD_NUM" ]]; then
     sed -i "s/^Release:.*/Release:        ${REBUILD_NUM}%{?dist}/" "$OUTPUT_SPEC"
     log_info "Updated Release field to: $REBUILD_NUM"
 else

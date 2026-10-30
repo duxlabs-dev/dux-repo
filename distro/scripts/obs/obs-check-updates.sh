@@ -231,10 +231,10 @@ EOF
             log_info "  quickshell-git OBS base ahead of stable tag (${_qs_base_prev} → ${base_version})"
         fi
 
-        if [[ "$package" == "dankcalendar-git" && -n "$base_version" ]]; then
+        if [[ "$package" =~ ^(dux-calendar|dankcalendar)-git$ && -n "$base_version" ]]; then
             local _dc_base_prev="$base_version"
             base_version=$(bump_patch_triplet "$base_version")
-            log_info "  dankcalendar-git OBS base ahead of stable tag (${_dc_base_prev} → ${base_version})"
+            log_info "  $package OBS base ahead of stable tag (${_dc_base_prev} → ${base_version})"
         fi
 
         if [[ "$package" == "dux-files-git" && -n "$base_version" ]]; then

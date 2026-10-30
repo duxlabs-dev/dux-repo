@@ -2,7 +2,7 @@
      OSC_CONFIG=~/.config/osc/oscrc-duxlabs osc meta prj home:duxlabs:dux-repo -F distro/obs-project-meta.duxlabs.xml -->
 <project name="home:duxlabs:dux-repo">
   <title>Dux Labs Repository</title>
-  <description>The Dux Labs Repository can be used to install standalone packages or core dependencies for the Dux Shell desktop environment like dgop, danksearch, ghostty, matugen, niri, xwayland-satellite and quickshell. 
+  <description>The Dux Labs Repository can be used to install standalone packages or core dependencies for the Dux Shell desktop environment like dux-gop, dux-search, ghostty, matugen, niri, xwayland-satellite and quickshell. 
 
 https://github.com/duxlabs-dev/dux-repo</description>
   <url>https://duxlabs.dev/docs/packaging/</url>
