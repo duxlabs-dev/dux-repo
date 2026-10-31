@@ -1,0 +1,13 @@
+<package name="matugen" project="home:AvengeMedia:danklinux">
+  <title>matugen</title>
+  <description>Material You color generator. Debian 13 gets matugen-snapshot instead, so this package is disabled there.</description>
+  <build>
+    <disable repository="Debian_13"/>
+  </build>
+  <publish>
+    <disable repository="Debian_13"/>
+  </publish>
+  <useforbuild>
+    <disable repository="Debian_13"/>
+  </useforbuild>
+</package>

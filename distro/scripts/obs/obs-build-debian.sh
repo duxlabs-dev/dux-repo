@@ -108,12 +108,15 @@ if [[ -n "$REBUILD_NUM" ]]; then
     VERSION=$(increment_db_version "$VERSION" "$REBUILD_NUM")
     log_info "Rebuild version: $VERSION"
 elif [[ -n "$(get_replaced_package "$PACKAGE")" && "$VERSION" == "$(strip_db_suffixes "$VERSION")" ]]; then
-    # A renamed package's committed .dbN sorts above its predecessor and its Breaks bounds; keep it for the same upstream version
+    # Renamed packages need a .dbN above the legacy build of the same upstream version
     COMMITTED_VERSION=$(head -1 "$REPO_ROOT/distro/debian/${PACKAGE%-snapshot}/debian/changelog" 2>/dev/null |
         sed -nE 's/^[^ ]+ \(([0-9]+:)?([^)]+)\).*/\2/p')
     if [[ -n "$COMMITTED_VERSION" && "$(strip_db_suffixes "$COMMITTED_VERSION")" == "$VERSION" ]]; then
         VERSION="$COMMITTED_VERSION"
         log_info "Using committed changelog version: $VERSION"
+    else
+        VERSION="$VERSION.db1"
+        log_info "Renamed package version: $VERSION"
     fi
 fi
 

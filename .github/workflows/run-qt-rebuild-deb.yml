@@ -51,6 +51,7 @@ jobs:
         id: check
         env:
           PPA_ARCHIVES: duxlabs/dux-repo avengemedia/danklinux
+          OBS_DB_REPO_BASES: https://download.opensuse.org/repositories/home:/AvengeMedia:/danklinux https://download.opensuse.org/repositories/home:/duxlabs-dev:/dux-repo
         run: |
           chmod +x distro/scripts/qt/qt-rebuild-deb-check.sh
           distro/scripts/qt/qt-rebuild-deb-check.sh
@@ -59,11 +60,10 @@ jobs:
         id: obs_owners
         env:
           OBS_PLAN: ${{ steps.check.outputs.obs_plan || '[]' }}
-          # duxlabs is dispatch-only until its OBS account exists; drop this gate then
-          OWNERS: ${{ github.event_name == 'workflow_dispatch' && inputs.owners || 'avengemedia' }}
+          OWNERS: ${{ inputs.owners || 'all' }}
         run: |
           MATRIX=$(jq -cn --arg o "$OWNERS" --argjson plan "$OBS_PLAN" '[
-              {owner: "duxlabs", suffix: "", project: "home:duxlabs:dux-repo"},
+              {owner: "duxlabs", suffix: "", project: "home:duxlabs-dev:dux-repo"},
               {owner: "avengemedia", suffix: "_LEGACY", project: "home:AvengeMedia:danklinux"}
             ] | map(select($o == "all" or .owner == $o))
             | if length == 0 then error("unknown owner: \($o)") else . end

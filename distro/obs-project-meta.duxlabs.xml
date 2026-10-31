@@ -1,12 +1,11 @@
-<!-- Keep repositories in sync with obs-project-meta.xml. Apply once the account exists (OSC_CONFIG: XML comments cannot hold a double hyphen):
-     OSC_CONFIG=~/.config/osc/oscrc-duxlabs osc meta prj home:duxlabs:dux-repo -F distro/obs-project-meta.duxlabs.xml -->
-<project name="home:duxlabs:dux-repo">
+<!-- Keep repositories in sync with obs-project-meta.xml -->
+<project name="home:duxlabs-dev:dux-repo">
   <title>Dux Labs Repository</title>
   <description>The Dux Labs Repository can be used to install standalone packages or core dependencies for the Dux Shell desktop environment like dux-gop, dux-search, ghostty, matugen, niri, xwayland-satellite and quickshell. 
 
 https://github.com/duxlabs-dev/dux-repo</description>
   <url>https://duxlabs.dev/docs/packaging/</url>
-  <person userid="duxlabs" role="maintainer"/>
+  <person userid="duxlabs-dev" role="maintainer"/>
   <repository name="openSUSE_Tumbleweed">
     <path project="openSUSE:Factory:ARM" repository="standard"/>
     <path project="openSUSE:Factory" repository="standard"/>

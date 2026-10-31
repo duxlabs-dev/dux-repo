@@ -76,7 +76,9 @@ Workflow: `.github/workflows/run-obs-v2.yml`
 
 - Runs every 6 hours, checks all packages
 - Auto-builds on updates
-- Manual triggers: package name, rebuild number, distro
+- Manual triggers: package name, rebuild number, distro, owners
+- One matrix leg per owner: `duxlabs` publishes to `home:duxlabs-dev:dux-repo` with `OBS_USERNAME`/`OBS_PASSWORD`, `avengemedia` to the legacy `home:AvengeMedia:danklinux` with `OBS_USERNAME_LEGACY`/`OBS_PASSWORD_LEGACY`
+- Packages with `owners:` in `obs-packages.yaml` build only for those owners. Renamed packages (`replaces:`) ship on duxlabs with the old names as transitional packages; the legacy project keeps building the old names
 
 ## Package Configuration
 
@@ -111,7 +113,9 @@ packages:
 - `binary_release: true` — download prebuilt `<pkg>-linux-{amd64,arm64}.gz` release assets instead of building (`binary_template` overrides the name)
 - `debian_epoch: N` — emit `N:` in `debian/changelog` versions (packages that already carry an epoch, e.g. dux-greeter)
 
-**openSUSE Release:** OBS replaces the spec `Release:` with `<CI_CNT>.<B_CNT>`, which restarts at 1 for a new package. A spec may set `Release: N.<CI_CNT>.<B_CNT>` to sort above a renamed predecessor; `obs-build-opensuse.sh` keeps that line.
+**openSUSE Release:** OBS replaces the spec `Release:` with `<CI_CNT>.<B_CNT>`, which restarts at 1 for a new package and for each new Version. A spec may set `Release: N.<CI_CNT>.<B_CNT>` to sort above a renamed predecessor; `obs-build-opensuse.sh` keeps that line.
+
+**Debian renamed packages:** the legacy leg publishes the same upstream version plainly under the old name, so `obs-build-debian.sh` uses the committed changelog `.dbN` for that upstream version, otherwise `.db1`. The old-name `Breaks`/`Replaces` and the transitional `Depends` use `${source:Version}`.
 
 ## Version Format
 
@@ -166,10 +170,12 @@ Project config in `distro/obs-project.conf` fixes dependency conflicts. Apply ch
 
 - `GITHUB_TOKEN` - GitHub API (rate limit)
 - `OBS_USERNAME`, `OBS_PASSWORD` - OBS auth
-- `OBS_PROJECT` - Project name (default: `home:AvengeMedia:danklinux`)
+- `OBS_PROJECT` - Project name (default: `home:AvengeMedia:danklinux`); `home:duxlabs-dev:*` selects the duxlabs owner
+- `OBS_OWNER` - Optional; must match the owner `OBS_PROJECT` implies
 - `DEBUG` - Debug logging
 
 ## Links
 
-- **OBS Project**: <https://build.opensuse.org/project/show/home:AvengeMedia:danklinux>
+- **OBS Project**: <https://build.opensuse.org/project/show/home:duxlabs-dev:dux-repo>
+- **Legacy OBS Project**: <https://build.opensuse.org/project/show/home:AvengeMedia:danklinux>
 - **Logs**: `/tmp/obs-build-*/build.log`

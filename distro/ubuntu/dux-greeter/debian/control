@@ -15,11 +15,11 @@ Depends: ${misc:Depends},
   quickshell-git | quickshell
 Suggests: niri | hyprland | sway
 Conflicts: dux-greeter-git,
-           dms-greeter-git (<< 1:2.0.0+git109.6cc8351ppa3)
-Breaks: dms-greeter (<< 1:2.0.0ppa3)
+           dms-greeter-git
+Breaks: dms-greeter (<< ${source:Version})
 Replaces: dux-greeter-git,
-          dms-greeter (<< 1:2.0.0ppa3),
-          dms-greeter-git (<< 1:2.0.0+git109.6cc8351ppa3)
+          dms-greeter,
+          dms-greeter-git
 Description: DMS Greeter for greetd
  DMS Greeter is a greetd login screen with the Dux Shell aesthetic.
  A single Go binary with the Quickshell UI embedded; the UI is extracted
@@ -34,7 +34,7 @@ Architecture: all
 Section: oldlibs
 Priority: optional
 Depends: ${misc:Depends},
-         dux-greeter (>= 1:2.0.0ppa3)
+         dux-greeter (>= ${source:Version})
 Description: transitional package, safe to remove
  dms-greeter has been renamed to dux-greeter.
  This package pulls in dux-greeter and can be removed afterwards.

@@ -8,6 +8,8 @@ cd "$REPO_ROOT"
 
 OBS_REPO_BASE="${OBS_REPO_BASE:-https://download.opensuse.org/repositories/home:/AvengeMedia:/danklinux}"
 OBS_DEB_REPOS="${OBS_DEB_REPOS:-Debian_Unstable Debian_Testing Debian_13}"
+# .dbN must sort above every owner's project; missing projects are skipped
+OBS_DB_REPO_BASES="${OBS_DB_REPO_BASES:-$OBS_REPO_BASE}"
 PPA_OWNER="${PPA_OWNER:-duxlabs}"
 PPA_NAME="${PPA_NAME:-dux-repo}"
 # One plan feeds every owner leg, so ppaN must be above what each of these archives holds
@@ -22,6 +24,7 @@ read -ra OBS_REPOS <<<"$OBS_DEB_REPOS"
 read -ra SERIES <<<"$PPA_SERIES"
 read -ra PACKAGES <<<"$QT_DEB_PACKAGES"
 read -ra ARCHIVES <<<"$PPA_ARCHIVES"
+read -ra OBS_DB_BASES <<<"$OBS_DB_REPO_BASES"
 
 for tool in curl jq dpkg; do
     if ! command -v "$tool" >/dev/null; then
@@ -56,8 +59,8 @@ ppa_suffix() {
 
 # prints "<version> <qt6-base-private-abi>" for the amd64 stanza of a package
 obs_published() {
-    local repo="$1" pkg="$2"
-    curl -fsSL "$OBS_REPO_BASE/$repo/Packages" | awk -v want="$pkg" '
+    local base="$1" repo="$2" pkg="$3"
+    curl -fsSL "$base/$repo/Packages" | awk -v want="$pkg" '
         /^Package: /      { cur = $2; ver = ""; arch = ""; abi = "" }
         /^Version: /      { ver = $2 }
         /^Architecture: / { arch = $2 }
@@ -99,7 +102,7 @@ declare -A OBS_REBUILD=() OBS_VERSION=() PPA_REBUILD=()
 echo "OBS Debian repos"
 for repo in "${OBS_REPOS[@]}"; do
     for pkg in "${PACKAGES[@]}"; do
-        read -r version abi < <(obs_published "$repo" "$pkg" || true)
+        read -r version abi < <(obs_published "$OBS_REPO_BASE" "$repo" "$pkg" || true)
         if [[ -z "${abi:-}" ]]; then
             echo "::error::$pkg not found in $repo Packages" >&2
             exit 1
@@ -159,7 +162,15 @@ done
 OBS_PLAN='[]'
 for pkg in "${PACKAGES[@]}"; do
     [[ -n "${OBS_REBUILD[$pkg]:-}" ]] || continue
-    next=$(( $(db_suffix "${OBS_VERSION[$pkg]}") + 1 ))
+    max=$(db_suffix "${OBS_VERSION[$pkg]}")
+    for base in "${OBS_DB_BASES[@]}"; do
+        for repo in "${OBS_REPOS[@]}"; do
+            read -r version _ < <(obs_published "$base" "$repo" "$pkg" || true) || continue
+            n=$(db_suffix "$version")
+            (( n > max )) && max=$n
+        done
+    done
+    next=$((max + 1))
     OBS_PLAN=$(jq -c --arg p "$pkg" --argjson n "$next" '. + [{package: $p, rebuild: $n}]' <<<"$OBS_PLAN")
     echo "  obs: $pkg ${OBS_VERSION[$pkg]} -> .db$next"
 done

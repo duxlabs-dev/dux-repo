@@ -73,11 +73,10 @@ jobs:
       - name: Plan OBS owners
         id: owners
         env:
-          # duxlabs is dispatch-only until its OBS account exists; drop this gate then
-          OWNERS: ${{ github.event_name == 'workflow_dispatch' && inputs.owners || 'avengemedia' }}
+          OWNERS: ${{ inputs.owners || 'all' }}
         run: |
           MATRIX=$(jq -cn --arg o "$OWNERS" '[
-              {owner: "duxlabs", suffix: "", project: "home:duxlabs:dux-repo"},
+              {owner: "duxlabs", suffix: "", project: "home:duxlabs-dev:dux-repo"},
               {owner: "avengemedia", suffix: "_LEGACY", project: "home:AvengeMedia:danklinux"}
             ] | map(select($o == "all" or .owner == $o))
             | if length == 0 then error("unknown owner: \($o)") else {include: .} end')

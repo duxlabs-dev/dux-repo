@@ -9,8 +9,8 @@ Homepage: https://github.com/duxlabs-dev/dux-search
 Package: dux-search
 Architecture: amd64 arm64
 Depends: ${misc:Depends}
-Breaks: danksearch (<< 2.0.0.db2)
-Replaces: danksearch (<< 2.0.0.db2)
+Breaks: danksearch (<< ${source:Version})
+Replaces: danksearch
 Description: Fast file search utility for DMS
  Dux Search is a fast file search utility designed for Dux Shell.
  It provides efficient file and content search capabilities with minimal
@@ -21,7 +21,7 @@ Architecture: all
 Section: oldlibs
 Priority: optional
 Depends: ${misc:Depends},
-         dux-search (>= 2.0.0.db2)
+         dux-search (>= ${source:Version})
 Description: transitional package, safe to remove
  danksearch has been renamed to dux-search.
  This package pulls in dux-search and can be removed afterwards.

@@ -1,0 +1,16 @@
+<package name="matugen-snapshot" project="home:AvengeMedia:danklinux">
+  <title>matugen (Debian 13 snapshot)</title>
+  <description>matugen pinned for Debian 13 (see snapshots.yaml). Every other repository builds the matugen package.</description>
+  <build>
+    <disable/>
+    <enable repository="Debian_13"/>
+  </build>
+  <publish>
+    <disable/>
+    <enable repository="Debian_13"/>
+  </publish>
+  <useforbuild>
+    <disable/>
+    <enable repository="Debian_13"/>
+  </useforbuild>
+</package>

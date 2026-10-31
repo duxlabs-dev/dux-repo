@@ -40,7 +40,7 @@ readonly CACHE_DIR="$HOME/.cache/obs-automation"
 readonly CACHE_TTL=900  # 15 minutes
 
 OBS_PROJECT="${OBS_PROJECT:-home:AvengeMedia:danklinux}"
-if [[ "$OBS_PROJECT" == home:duxlabs:* ]]; then
+if [[ "$OBS_PROJECT" == home:duxlabs-dev:* ]]; then
     _OBS_PROJECT_OWNER=duxlabs
 else
     _OBS_PROJECT_OWNER=avengemedia
