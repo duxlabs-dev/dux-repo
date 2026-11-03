@@ -373,8 +373,7 @@ packages:
       branch: master
     base_version:
       from_stable: dux-files
-      # Used until dux-files has its first release
-      fallback: "0.0.0"
+      fallback: "2.0.0"
     distros:
       - debian
       - opensuse
