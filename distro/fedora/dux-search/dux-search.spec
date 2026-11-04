@@ -4,8 +4,8 @@
 %global pkg_summary Blazingly fast and efficient file system search tool
 
 Name:           dux-search
-Version:        2.0.0
-Release:        2%{?dist}
+Version:        2.1.0
+Release:        1%{?dist}
 Summary:        %{pkg_summary}
 
 License:        MIT
@@ -112,6 +112,9 @@ EOF
 fi
 
 %changelog
+* Wed Nov 04 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 2.1.0-1
+- update to 2.1.0
+
 * Fri Oct 30 2026 Purian23 <purian23@users.noreply.github.com> - 2.0.0-2
 - Rename package from danksearch
 

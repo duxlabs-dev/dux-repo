@@ -1,9 +1,9 @@
 %global debug_package %{nil}
 
 Name:           dux-gop
-Version:        2.0.0
+Version:        2.1.0
 Epoch:          1
-Release:        2%{?dist}
+Release:        1%{?dist}
 Summary:        System monitoring CLI and REST API
 
 License:        MIT
@@ -61,6 +61,9 @@ install -Dm755 dgop %{buildroot}%{_bindir}/dgop
 %{_bindir}/dgop
 
 %changelog
+* Wed Nov 04 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1:2.1.0-1
+- update to 2.1.0
+
 * Fri Oct 30 2026 Purian23 <purian23@users.noreply.github.com> - 1:2.0.0-2
 - Rename package from dgop
 

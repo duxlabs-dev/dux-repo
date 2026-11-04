@@ -7,8 +7,8 @@ Name:           dms-greeter
 # Epoch 1: versions restarted at 1.0.0 when the greeter moved to its own repo;
 # the old package (built from Dux Shell) had reached 1.5.x.
 Epoch:          1
-Version:        2.0.0
-Release:        2%{?dist}
+Version:        2.1.0
+Release:        1%{?dist}
 Summary:        %{pkg_summary}
 
 License:        MIT
@@ -259,6 +259,9 @@ if [ "$1" -eq 0 ] && [ -x /usr/sbin/semanage ]; then
 fi
 
 %changelog
+* Wed Nov 04 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1:2.1.0-1
+- update to 2.1.0
+
 * Sat Oct 24 2026 Avenge Media <AvengeMedia.US@gmail.com> - 1:2.0.0-2
 - Packaging moved to dux-packaging; build from the vendored release tarball
   with the distro Go toolchain (GOTOOLCHAIN=auto) instead of bundled go.dev tarballs

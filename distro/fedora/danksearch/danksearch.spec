@@ -4,7 +4,7 @@
 %global pkg_summary Blazingly fast and efficient file system search tool
 
 Name:           danksearch
-Version:        2.0.0
+Version:        2.1.0
 Release:        1%{?dist}
 Summary:        %{pkg_summary}
 
@@ -109,6 +109,9 @@ EOF
 fi
 
 %changelog
+* Wed Nov 04 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 2.1.0-1
+- update to 2.1.0
+
 * Tue Oct 20 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 2.0.0-1
 - update to 2.0.0
 

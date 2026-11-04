@@ -7,8 +7,8 @@ Name:           dux-greeter
 # Epoch 1: versions restarted at 1.0.0 when the greeter moved to its own repo;
 # the old package (built from Dux Shell) had reached 1.5.x.
 Epoch:          1
-Version:        2.0.0
-Release:        3%{?dist}
+Version:        2.1.0
+Release:        1%{?dist}
 Summary:        %{pkg_summary}
 
 License:        MIT
@@ -270,6 +270,9 @@ if [ "$1" -eq 0 ] && [ -x /usr/sbin/semanage ]; then
 fi
 
 %changelog
+* Wed Nov 04 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1:2.1.0-1
+- update to 2.1.0
+
 * Fri Oct 30 2026 Purian23 <purian23@users.noreply.github.com> - 1:2.0.0-3
 - Rename package from dms-greeter
 - Re-apply SELinux file contexts in %%posttrans after obsoleting dms-greeter
