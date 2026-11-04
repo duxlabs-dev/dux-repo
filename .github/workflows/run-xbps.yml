@@ -6,7 +6,7 @@ on:
   schedule:
     - cron: "0 */6 * * *" # Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
   repository_dispatch:
-    types: [greeter-git, greeter-release]
+    types: [greeter-git, greeter-release, suite-release]
   workflow_dispatch:
     inputs:
       package:
@@ -72,18 +72,20 @@ jobs:
           DISPATCH_TYPE: ${{ github.event.action }}
           SELECTED: ${{ github.event.inputs.package || 'all' }}
         run: |
+          # Transitional old-name metas last: xbps-src needs their targets built first.
+          ALL="dux-gop dux-search dux-calendar dux-files dux-greeter-git dux-greeter dgop danksearch dankcalendar dms-greeter-git dms-greeter"
           case "$EVENT_NAME" in
             repository_dispatch)
               case "$DISPATCH_TYPE" in
                 greeter-git)     PACKAGES="dux-greeter-git" ;;
                 greeter-release) PACKAGES="dux-greeter" ;;
+                suite-release)   PACKAGES="$ALL" ;;
                 *) echo "Unknown dispatch type: $DISPATCH_TYPE" >&2; exit 1 ;;
               esac
               ;;
             *)
               if [ "$SELECTED" = "all" ]; then
-                # Transitional old-name metas last: xbps-src needs their targets built first.
-                PACKAGES="dux-gop dux-search dux-calendar dux-files dux-greeter-git dux-greeter dgop danksearch dankcalendar dms-greeter-git dms-greeter"
+                PACKAGES="$ALL"
               else
                 PACKAGES="$SELECTED"
               fi

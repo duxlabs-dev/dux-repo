@@ -54,7 +54,7 @@ on:
     - cron: "0 */6 * * *" # Every 6 hours for git packages
   # From dux-greeter notify-packaging.yml
   repository_dispatch:
-    types: [greeter-git, greeter-release]
+    types: [greeter-git, greeter-release, suite-release]
 
 # All runs commit to the same OBS packages; never run two at once.
 concurrency:
@@ -162,6 +162,7 @@ jobs:
             case "$DISPATCH_TYPE" in
               greeter-git) PACKAGES="dux-greeter-git" ;;
               greeter-release) PACKAGES="dux-greeter" ;;
+              suite-release) PACKAGES="all" ;;
               *)
                 echo "Unknown repository_dispatch type: $DISPATCH_TYPE" >&2
                 exit 1

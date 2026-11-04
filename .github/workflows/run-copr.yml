@@ -63,7 +63,7 @@ on:
 
   # From dux-greeter notify-packaging.yml; handled like a scheduled run.
   repository_dispatch:
-    types: [greeter-git, greeter-release]
+    types: [greeter-git, greeter-release, suite-release]
 
 # The update job pushes commits; never run two at once.
 concurrency:

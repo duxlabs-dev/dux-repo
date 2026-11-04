@@ -44,7 +44,7 @@ on:
     - cron: '0 */6 * * *'  # Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
   # From dux-greeter notify-packaging.yml
   repository_dispatch:
-    types: [greeter-git, greeter-release]
+    types: [greeter-git, greeter-release, suite-release]
 
 # One planner at a time; Launchpad rejects duplicate versions.
 concurrency:
@@ -93,6 +93,7 @@ jobs:
             case "$DISPATCH_TYPE" in
               greeter-git) PACKAGE="dux-greeter-git" ;;
               greeter-release) PACKAGE="dux-greeter" ;;
+              suite-release) PACKAGE="auto" ;;
               *) echo "Unknown repository_dispatch type: $DISPATCH_TYPE" >&2; exit 1 ;;
             esac
             REBUILD_RELEASE=""
