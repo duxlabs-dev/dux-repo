@@ -3,12 +3,12 @@
 
 %global debug_package %{nil}
 
-%global commit      2b1ee65322ef3504daf3fc13b8b9ead3f4c42cfd
-%global commits     121
-%global snapdate    20261104
+%global commit      276dc4b3e1385159a61c6acc3d05956cab06c6a6
+%global commits     122
+%global snapdate    20261105
 %global tag         2.1.1
 # dux-qml-common submodule commit (GitHub archives ship submodules empty)
-%global common_commit be3e16ca62866a749b34cfefe1aaed81cfe21e94
+%global common_commit 8fb555a440693b71ac458d9dc1e9dc979750b48e
 
 %global pkg_summary DMS Greeter for greetd (git)
 
