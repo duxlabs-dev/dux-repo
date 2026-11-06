@@ -1,11 +1,11 @@
 %global debug_package %{nil}
 
-%global commit      17b98ca001fbaeb6a03d5b5f46d20f43548d6c77
-%global commits     291
-%global snapdate    20261105
+%global commit      a9832ad700ce7ceb64e0c8759fa106d7b6c87e09
+%global commits     293
+%global snapdate    20261106
 %global tag         2.1.1
 # dux-qml-common submodule commit for %%{commit} (GitHub archives ship submodules empty)
-%global common_commit 8fb555a440693b71ac458d9dc1e9dc979750b48e
+%global common_commit 76277f04bf526164150efa857e3f225dc54cb090
 
 Name:               dux-calendar-git
 Version:            %{tag}+git%{commits}.%(c=%{commit}; echo ${c:0:8})
