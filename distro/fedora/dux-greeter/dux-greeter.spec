@@ -21,6 +21,7 @@ BuildRequires:  make
 BuildRequires:  systemd-rpm-macros
 
 Requires:       greetd
+Requires(post): greetd
 Requires:       (quickshell-git or quickshell)
 Requires:       policycoreutils-python-utils
 Requires(pre):  shadow-utils
@@ -131,7 +132,8 @@ fi
 chown -R "$GREETER_USER:greeter" %{_localstatedir}/cache/dms-greeter 2>/dev/null || true
 chown -R greeter:greeter %{_sharedstatedir}/greeter 2>/dev/null || true
 
-# Verify PAM configuration - only fix if insufficient
+# Verify PAM configuration - only fix if insufficient, and never shadow greetd's own /usr/lib/pam.d/greetd
+if [ ! -f /usr/lib/pam.d/greetd ]; then
 PAM_CONFIG="/etc/pam.d/greetd"
 if [ ! -f "$PAM_CONFIG" ]; then
     cat > "$PAM_CONFIG" << 'PAM_EOF'
@@ -176,6 +178,7 @@ PAM_EOF
     chmod 644 "$PAM_CONFIG"
     # Only show message on initial install
     [ "$1" -eq 1 ] && echo "Updated PAM configuration (old config backed up to $PAM_CONFIG.backup-dms-greeter)"
+fi
 fi
 
 # Auto-configure greetd config

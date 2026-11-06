@@ -20,6 +20,7 @@ BuildRequires:  make
 BuildRequires:  systemd-rpm-macros
 
 Requires:       greetd
+Requires(post): greetd
 Requires:       (quickshell-git or quickshell)
 Requires(pre):  /usr/sbin/useradd
 Requires(pre):  /usr/sbin/groupadd
@@ -161,7 +162,8 @@ fi
 chown -R "$GREETER_USER:$GREETER_GROUP" %{_localstatedir}/cache/dms-greeter 2>/dev/null || true
 chown -R "$GREETER_USER:$GREETER_GROUP" %{_sharedstatedir}/greeter 2>/dev/null || true
 
-# Verify PAM configuration
+# Verify PAM configuration, and never shadow greetd's own /usr/lib/pam.d/greetd
+if [ ! -f /usr/lib/pam.d/greetd ]; then
 PAM_CONFIG="/etc/pam.d/greetd"
 write_greetd_pam_config() {
     # openSUSE and Debian families usually expose PAM stacks as common-*
@@ -243,6 +245,7 @@ else
         chmod 644 "$PAM_CONFIG"
         [ "$1" -eq 1 ] && echo "Updated PAM configuration (old config backed up to $PAM_CONFIG.backup-dms-greeter)"
     fi
+fi
 fi
 
 # Auto-configure greetd config
