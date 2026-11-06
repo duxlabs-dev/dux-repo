@@ -4,7 +4,7 @@
 %global pkg_summary Blazingly fast and efficient file system search tool
 
 Name:           dux-search
-Version:        2.1.0
+Version:        2.1.1
 Release:        1%{?dist}
 Summary:        %{pkg_summary}
 
@@ -112,6 +112,9 @@ EOF
 fi
 
 %changelog
+* Fri Nov 06 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 2.1.1-1
+- update to 2.1.1
+
 * Wed Nov 04 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 2.1.0-1
 - update to 2.1.0
 
