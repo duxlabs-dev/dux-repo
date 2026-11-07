@@ -66,11 +66,21 @@ declare -A LEGACY_NAME=(
     [dux-greeter-git]=dms-greeter-git
 )
 LEGACY_OWNER=avengemedia
+# 2.2-era packages with no legacy twin; the legacy owner never gets them
+DUXLABS_ONLY=(dux-qt-base dux-qt-base-git)
+
+duxlabs_only() {
+    local name="$1" p
+    for p in "${DUXLABS_ONLY[@]}"; do
+        [[ "$p" == "$name" ]] && return 0
+    done
+    return 1
+}
 
 published_here() {
     local name="$1" new
     if [[ "$COPR_OWNER" == "$LEGACY_OWNER" ]]; then
-        [[ -z "${LEGACY_NAME[$name]:-}" ]]
+        ! duxlabs_only "$name" && [[ -z "${LEGACY_NAME[$name]:-}" ]]
         return
     fi
     for new in "${!LEGACY_NAME[@]}"; do

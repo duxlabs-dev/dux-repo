@@ -234,10 +234,25 @@ include_package() {
 
 TARGETS=()
 
+# 2.2-era packages with no legacy twin; the legacy owner never gets them
+DUXLABS_ONLY=(dux-qt-base dux-qt-base-git)
+
+duxlabs_only() {
+    local name="$1" p
+    for p in "${DUXLABS_ONLY[@]}"; do
+        [[ "$p" == "$name" ]] && return 0
+    done
+    return 1
+}
+
 declare -A used_ppa=()
 for pkg_info in "${PACKAGES[@]}"; do
     IFS=':' read -r package repo type <<< "$pkg_info"
     include_package "$package" || continue
+    if [[ "$PPA_OWNER" == "avengemedia" ]] && duxlabs_only "$package"; then
+        echo "${package}: not published to ppa:${PPA_OWNER}, skipping" >&2
+        continue
+    fi
 
     src_name="$package"
     former="${OLD_NAME[$package]:-}"

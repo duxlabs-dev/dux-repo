@@ -60,6 +60,12 @@ declare -A LEGACY_NAME=(
     [dux-greeter-git]=dms-greeter-git
 )
 if [[ "$COPR_OWNER" == "avengemedia" ]]; then
+    case "$PACKAGE" in
+        dux-qt-base|dux-qt-base-git)
+            error "$PACKAGE is not published to the legacy $COPR_OWNER project"
+            exit 1
+            ;;
+    esac
     PACKAGE="${LEGACY_NAME[$PACKAGE]:-$PACKAGE}"
 else
     for new in "${!LEGACY_NAME[@]}"; do

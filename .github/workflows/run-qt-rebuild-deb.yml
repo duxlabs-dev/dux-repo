@@ -67,7 +67,9 @@ jobs:
               {owner: "avengemedia", suffix: "_LEGACY", project: "home:AvengeMedia:danklinux"}
             ] | map(select($o == "all" or .owner == $o))
             | if length == 0 then error("unknown owner: \($o)") else . end
-            | {include: [$plan[] as $item | .[] | . + {item: $item}]}')
+            | {include: [$plan[] as $item | .[]
+                | select(.owner != "avengemedia" or ($item.package | IN("dux-qt-base", "dux-qt-base-git") | not))
+                | . + {item: $item}]}')
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
 
       - name: Commit baseline

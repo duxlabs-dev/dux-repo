@@ -76,11 +76,14 @@ jobs:
         id: owners
         env:
           OWNERS: ${{ inputs.owners || 'all' }}
+          PACKAGE: ${{ inputs.package || 'all' }}
         run: |
-          MATRIX=$(jq -cn --arg o "$OWNERS" '[
+          # duxlabs-only packages (owners: [duxlabs] in obs-packages.yaml) have no legacy leg
+          MATRIX=$(jq -cn --arg o "$OWNERS" --arg p "$PACKAGE" '[
               {owner: "duxlabs", suffix: "", project: "home:duxlabs-dev:dux-repo"},
               {owner: "avengemedia", suffix: "_LEGACY", project: "home:AvengeMedia:danklinux"}
             ] | map(select($o == "all" or .owner == $o))
+            | map(select(.owner != "avengemedia" or ($p | IN("dux-qt-base", "dux-qt-base-git") | not)))
             | if length == 0 then error("unknown owner: \($o)") else {include: .} end')
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
           echo "OBS owners: $(jq -r '[.include[].owner] | join(", ")' <<< "$MATRIX")"
