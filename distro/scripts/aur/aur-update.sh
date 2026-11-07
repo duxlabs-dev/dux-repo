@@ -15,6 +15,9 @@ AUR_GIT_BASE="${AUR_GIT_BASE:-ssh://aur@aur.archlinux.org}"
 AUR_RETRIES="${AUR_RETRIES:-8}"
 COMMIT_AUTHOR_NAME="${COMMIT_AUTHOR_NAME:-github-actions[bot]}"
 COMMIT_AUTHOR_EMAIL="${COMMIT_AUTHOR_EMAIL:-41898282+github-actions[bot]@users.noreply.github.com}"
+# the runner's output file belongs to root; an unprivileged makepkg user cannot write it
+GITHUB_OUTPUT="${GITHUB_OUTPUT:-/dev/null}"
+[[ -w "$GITHUB_OUTPUT" ]] || GITHUB_OUTPUT=/dev/null
 
 # name:repo:kind (release: pkgver follows GitHub releases; git: manual pkgrel only)
 PACKAGES=(
@@ -172,7 +175,7 @@ fi
 
 if [[ "$VERSION_CHANGED" == false && "$QTVER_CHANGED" == false && "$NEW_PKGREL" == "$CURRENT_PKGREL" ]]; then
     info "$PACKAGE is up to date ($CURRENT_VERSION-$CURRENT_PKGREL)"
-    echo "updated=false" >>"${GITHUB_OUTPUT:-/dev/null}"
+    echo "updated=false" >>"$GITHUB_OUTPUT"
     exit 0
 fi
 
@@ -203,7 +206,7 @@ git --no-pager diff --stat
 if [[ "$DRY_RUN" == true ]]; then
     git --no-pager diff
     info "Dry run, not pushing"
-    echo "updated=false" >>"${GITHUB_OUTPUT:-/dev/null}"
+    echo "updated=false" >>"$GITHUB_OUTPUT"
     exit 0
 fi
 
@@ -222,4 +225,4 @@ info "Pushed $PACKAGE $NEW_VERSION-$NEW_PKGREL"
 {
     echo "updated=true"
     echo "version=$NEW_VERSION-$NEW_PKGREL"
-} >>"${GITHUB_OUTPUT:-/dev/null}"
+} >>"$GITHUB_OUTPUT"
