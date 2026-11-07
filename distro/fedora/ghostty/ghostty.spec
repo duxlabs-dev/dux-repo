@@ -216,6 +216,9 @@ rm -f "%{buildroot}%{_prefix}/share/terminfo/g/ghostty"
 * Sat Nov 07 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - t-1.0.0-1
 - update to t-1.0.0
 
+* Sat Nov 07 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - t-1.0.0-1
+- update to t-1.0.0
+
 * Thu Oct 29 2026 Purian23 <purian23@users.noreply.github.com> - 1.4.0-3
 - Obsolete terra's split ghostty subpackages (vim, neovim, nautilus, kio, bat-syntax,
   shell-integration, terminfo and the shell completions): their files ship in the main
