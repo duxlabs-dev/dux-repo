@@ -210,7 +210,13 @@ jobs:
             echo "🔨 Compiling $pkg ($ver)..."
             (cd "$VOID_PACKAGES_DIR" && ./xbps-src pkg "$pkg") &&
             rm -f "$REPOSITORY_DIR/current/$file" &&
-            cp -L "$VOID_PACKAGES_DIR/hostdir/binpkgs/$file" "$REPOSITORY_DIR/current/"
+            cp -L "$VOID_PACKAGES_DIR/hostdir/binpkgs/$file" "$REPOSITORY_DIR/current/" || return 1
+            # subpackages (dux-qt-base-devel) ship next to the main package
+            local sub="${pkg}-devel-${ver}_${rev}.x86_64.xbps"
+            if [ -f "$VOID_PACKAGES_DIR/hostdir/binpkgs/$sub" ]; then
+              rm -f "$REPOSITORY_DIR/current/$sub" &&
+              cp -L "$VOID_PACKAGES_DIR/hostdir/binpkgs/$sub" "$REPOSITORY_DIR/current/"
+            fi
           }
 
           FAILED=()
