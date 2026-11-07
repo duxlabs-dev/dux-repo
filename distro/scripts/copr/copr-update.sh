@@ -327,6 +327,86 @@ else
 fi
 
 # ============================================================================
+# DUX-QT-BASE
+# ============================================================================
+echo ""
+echo "📦 Checking dux-qt-base..."
+
+SPEC_FILE="dux-qt-base/dux-qt-base.spec"
+UPSTREAM_REPO="duxlabs-dev/dux-qt-base"
+
+CURRENT_VERSION=$(grep -oP '^Version:\s+\K[0-9.]+' "$SPEC_FILE" || echo "unknown")
+echo "   Current: $CURRENT_VERSION"
+
+LATEST_TAG=$("$SCRIPT_DIR/../common/fetch-version.sh" "$UPSTREAM_REPO" "release" 2>/dev/null || echo "")
+LATEST_VERSION="${LATEST_TAG#v}"
+
+if [[ -n "$LATEST_VERSION" ]]; then
+    echo "   Latest:  $LATEST_VERSION"
+    if version_is_newer "$LATEST_VERSION" "$CURRENT_VERSION"; then
+        echo "   ✨ Update available: $CURRENT_VERSION → $LATEST_VERSION"
+        sed -i "s/^Version:\s\+.*/Version:        $LATEST_VERSION/" "$SPEC_FILE"
+        reset_release "$SPEC_FILE" "$LATEST_VERSION"
+        UPDATED=$((UPDATED + 1))
+        UPDATED_PACKAGES+=("dux-qt-base: $CURRENT_VERSION → $LATEST_VERSION")
+    else
+        echo "   ✓ Already up to date"
+    fi
+else
+    echo "   ⚠ Could not fetch latest version (no release tag yet?)"
+fi
+
+# ============================================================================
+# DUX-QT-BASE-GIT (Latest Commit)
+# ============================================================================
+echo ""
+echo "📦 Checking dux-qt-base-git (development)..."
+
+SPEC_FILE="dux-qt-base/dux-qt-base-git.spec"
+
+# %global tag is the latest stable release + 1 patch so the ^ snapshot sorts above dux-qt-base.
+if [[ -n "$LATEST_VERSION" ]]; then
+    DESIRED_GIT_TAG=$(bump_patch_triplet "$LATEST_VERSION")
+    CURRENT_GIT_TAG=$(grep -oP '^%global tag\s+\K[0-9.]+' "$SPEC_FILE" || echo "")
+    if [[ -n "$DESIRED_GIT_TAG" && "$CURRENT_GIT_TAG" != "$DESIRED_GIT_TAG" ]]; then
+        echo "   ✨ %global tag (ahead of stable $LATEST_VERSION): $CURRENT_GIT_TAG → $DESIRED_GIT_TAG"
+        sed -i "s/^%global tag\s\+.*/%global tag         $DESIRED_GIT_TAG/" "$SPEC_FILE"
+        UPDATED=$((UPDATED + 1))
+        UPDATED_PACKAGES+=("dux-qt-base-git: tag $CURRENT_GIT_TAG → $DESIRED_GIT_TAG")
+    fi
+fi
+
+CURRENT_COMMIT=$(grep -oP '^%global commit\s+\K[a-f0-9]+' "$SPEC_FILE" || echo "unknown")
+echo "   Current commit: ${CURRENT_COMMIT:0:7}"
+
+COMMIT_INFO=$("$SCRIPT_DIR/../common/fetch-version.sh" "$UPSTREAM_REPO" "commit")
+IFS='|' read -r LATEST_COMMIT LATEST_SHORT_COMMIT LATEST_SNAPDATE <<< "$COMMIT_INFO"
+REPO_COMMIT_TOTAL=$("$SCRIPT_DIR/../common/fetch-version.sh" "$UPSTREAM_REPO" "repo_commit_total" 2>/dev/null || echo "")
+
+if [[ -n "$LATEST_COMMIT" ]]; then
+    echo "   Latest commit:  ${LATEST_SHORT_COMMIT} (date: $LATEST_SNAPDATE)"
+    if [[ "$CURRENT_COMMIT" != "$LATEST_COMMIT" ]]; then
+        echo "   ✨ Update available: ${CURRENT_COMMIT:0:7} → ${LATEST_SHORT_COMMIT}"
+        if [[ -n "$REPO_COMMIT_TOTAL" && "$REPO_COMMIT_TOTAL" != "0" ]]; then
+            COMMIT_COUNT="$REPO_COMMIT_TOTAL"
+        else
+            CURRENT_COUNT=$(grep -oP '^%global commits\s+\K[0-9]+' "$SPEC_FILE" || echo "0")
+            COMMIT_COUNT=$((CURRENT_COUNT + 1))
+        fi
+        sed -i "s/^%global commit\s\+.*/%global commit      $LATEST_COMMIT/" "$SPEC_FILE"
+        sed -i "s/^%global commits\s\+.*/%global commits     $COMMIT_COUNT/" "$SPEC_FILE"
+        sed -i "s/^%global snapdate\s\+.*/%global snapdate    $LATEST_SNAPDATE/" "$SPEC_FILE"
+        reset_release "$SPEC_FILE" "$(grep -oP '^%global tag\s+\K[0-9.]+' "$SPEC_FILE")^${COMMIT_COUNT}.git${LATEST_SHORT_COMMIT:0:7}"
+        UPDATED=$((UPDATED + 1))
+        UPDATED_PACKAGES+=("dux-qt-base-git: ${CURRENT_COMMIT:0:7} → ${LATEST_SHORT_COMMIT}")
+    else
+        echo "   ✓ Already up to date"
+    fi
+else
+    echo "   ⚠ Could not fetch latest commit"
+fi
+
+# ============================================================================
 # DUX-GOP
 # ============================================================================
 echo ""
@@ -973,6 +1053,8 @@ if [[ -n "${COPR_REBUILD_COUNT:-}" || -n "${COPR_REBUILD_PACKAGE:-}" ]]; then
     ALL_SPECS_BUMP=(
         distro/fedora/quickshell/quickshell.spec
         distro/fedora/quickshell/quickshell-git.spec
+        distro/fedora/dux-qt-base/dux-qt-base.spec
+        distro/fedora/dux-qt-base/dux-qt-base-git.spec
         distro/fedora/dux-gop/dux-gop.spec
         distro/fedora/matugen/matugen.spec
         distro/fedora/ghostty/ghostty.spec
@@ -992,6 +1074,8 @@ if [[ -n "${COPR_REBUILD_COUNT:-}" || -n "${COPR_REBUILD_PACKAGE:-}" ]]; then
     case "${COPR_REBUILD_PACKAGE}" in
         quickshell) _copr_bump_spec_release distro/fedora/quickshell/quickshell.spec ;;
         quickshell-git) _copr_bump_spec_release distro/fedora/quickshell/quickshell-git.spec ;;
+        dux-qt-base) _copr_bump_spec_release distro/fedora/dux-qt-base/dux-qt-base.spec ;;
+        dux-qt-base-git) _copr_bump_spec_release distro/fedora/dux-qt-base/dux-qt-base-git.spec ;;
         dux-gop) _copr_bump_spec_release distro/fedora/dux-gop/dux-gop.spec ;;
         matugen) _copr_bump_spec_release distro/fedora/matugen/matugen.spec ;;
         ghostty) _copr_bump_spec_release distro/fedora/ghostty/ghostty.spec ;;

@@ -42,7 +42,7 @@ if [[ $# -lt 1 ]]; then
     error "Usage: $0 <package-name>"
     echo ""
     echo "Available packages:"
-    echo "  cli11, quickshell, quickshell-git, dux-calendar, dux-calendar-git, dux-files, dux-files-git,"
+    echo "  cli11, quickshell, quickshell-git, dux-qt-base, dux-qt-base-git, dux-calendar, dux-calendar-git, dux-files, dux-files-git,"
     echo "  dux-greeter, dux-greeter-git,"
     echo "  dux-gop, matugen, ghostty, dux-search, material-symbols-fonts, qt6ct-kde,"
     echo "  greetd, gtk4-layer-shell, cava, alacritty, xwayland-satellite (EL10 only)"
@@ -77,6 +77,8 @@ if [[ "$PACKAGE" == "material-symbols-fonts" ]]; then
     SPEC_FILE="$REPO_ROOT/distro/fedora/fonts/material-symbols-fonts.spec"
 elif [[ "$PACKAGE" == "quickshell-git" ]]; then
     SPEC_FILE="$REPO_ROOT/distro/fedora/quickshell/quickshell-git.spec"
+elif [[ "$PACKAGE" == "dux-qt-base-git" ]]; then
+    SPEC_FILE="$REPO_ROOT/distro/fedora/dux-qt-base/dux-qt-base-git.spec"
 elif [[ "$PACKAGE" == "dux-calendar-git" ]]; then
     SPEC_FILE="$REPO_ROOT/distro/fedora/dux-calendar/dux-calendar-git.spec"
 elif [[ "$PACKAGE" == "dux-files-git" ]]; then

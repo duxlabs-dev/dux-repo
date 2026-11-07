@@ -1,0 +1,3 @@
+usr/include/dux-qt-base
+usr/lib/*/libdux-qt-base.so
+usr/lib/*/pkgconfig/dux-qt-base.pc

@@ -1,0 +1,38 @@
+# Template file for 'dux-qt-base'
+pkgname=dux-qt-base
+version=0.3.2
+revision=1
+build_style=cmake
+configure_args="-DCMAKE_BUILD_TYPE=RelWithDebInfo
+ -DCMAKE_INSTALL_LIBDIR=lib
+ -DDISTRIBUTOR=Void
+ -DGIT_REVISION=v${version}"
+hostmakedepends="pkg-config qt6-base qt6-declarative-host-tools qt6-shadertools
+ qt6-wayland-tools wayland-devel SPIRV-Tools"
+makedepends="qt6-base-private-devel qt6-declarative-private-devel
+ qt6-wayland-private-devel qt6-shadertools-devel cli11 wayland-devel
+ wayland-protocols libxcb-devel libxkbcommon-devel pipewire-devel pam-devel
+ polkit-devel glib-devel libdrm-devel MesaLib-devel Vulkan-Headers"
+depends="qt6-wayland"
+short_desc="Quickshell QML runtime as a shared library with a C entry point"
+maintainer="AvengeMedia <AvengeMedia.US@gmail.com>"
+license="LGPL-3.0-only"
+homepage="https://github.com/duxlabs-dev/dux-qt-base"
+changelog="https://github.com/duxlabs-dev/dux-qt-base/releases"
+distfiles="https://github.com/duxlabs-dev/dux-qt-base/archive/refs/tags/v${version}.tar.gz"
+checksum=860dd995d2ad38257c0e00ed13ccd738a9268da4ba313e9af7c97ec8d7422be2
+
+post_install() {
+	vlicense LICENSE
+	vlicense LICENSE-GPL
+}
+
+dux-qt-base-devel_package() {
+	depends="${sourcepkg}>=${version}_${revision} pkg-config"
+	short_desc+=" - development files"
+	pkg_install() {
+		vmove usr/include
+		vmove usr/lib/pkgconfig
+		vmove "usr/lib/*.so"
+	}
+}

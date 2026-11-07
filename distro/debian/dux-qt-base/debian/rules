@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+DEB_VERSION_UPSTREAM := $(shell dpkg-parsechangelog -S Version | sed 's/-[^-]*$$//')
+
+%:
+	dh $@ --buildsystem=cmake+ninja
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DDISTRIBUTOR="Debian (libdux-qt-base0)" \
+		-DGIT_REVISION="v$(DEB_VERSION_UPSTREAM)"

@@ -13,7 +13,7 @@ LAUNCHPAD_API="https://api.launchpad.net/1.0"
 DISTRO_SERIES_LIST=(resolute stonking)
 
 # Define packages (sync with ppa-upload.sh)
-ALL_PACKAGES=(cpptrace ghostty matugen niri niri-git quickshell quickshell-git xwayland-satellite xwayland-satellite-git dux-calendar dux-calendar-git dux-files dux-files-git dux-gop dux-greeter dux-greeter-git dux-search)
+ALL_PACKAGES=(cpptrace ghostty matugen niri niri-git quickshell quickshell-git dux-qt-base dux-qt-base-git xwayland-satellite xwayland-satellite-git dux-calendar dux-calendar-git dux-files dux-files-git dux-gop dux-greeter dux-greeter-git dux-search)
 if [[ "$PPA_OWNER" == "avengemedia" ]]; then
     ALL_PACKAGES=(cpptrace ghostty matugen niri niri-git quickshell quickshell-git xwayland-satellite xwayland-satellite-git dankcalendar dankcalendar-git dux-files dux-files-git dgop dms-greeter dms-greeter-git danksearch)
 fi

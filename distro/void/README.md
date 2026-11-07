@@ -9,6 +9,7 @@ Each builds from source from its upstream release.
 | `dux-search` | `dsearch` | [duxlabs-dev/dux-search](https://github.com/duxlabs-dev/dux-search) | Fast filesystem search |
 | `dux-calendar` | `dcal` | [duxlabs-dev/dux-calendar](https://github.com/duxlabs-dev/dux-calendar) | Calendar app (Local, Google, CalDAV, iCloud) |
 | `dux-files` | `dfiles` | [duxlabs-dev/dux-files](https://github.com/duxlabs-dev/dux-files) | File manager |
+| `dux-qt-base` | `libdux-qt-base.so.0` | [duxlabs-dev/dux-qt-base](https://github.com/duxlabs-dev/dux-qt-base) | Quickshell QML runtime shared library (`-devel` split) |
 | `dux-greeter` | `dms-greeter` | [duxlabs-dev/dux-greeter](https://github.com/duxlabs-dev/dux-greeter) | greetd login screen (stable release) |
 | `dux-greeter-git` | `dms-greeter` | [duxlabs-dev/dux-greeter](https://github.com/duxlabs-dev/dux-greeter) | greetd login screen (master snapshot) |
 
@@ -16,7 +17,7 @@ Each builds from source from its upstream release.
 standalone app. The `dms` / `dms-git` Void packages live in the
 [Dux Shell repo](https://github.com/duxlabs-dev/dux-shell/tree/master/distro/void).
 
-`run-xbps.yml` builds every package here, the greeter from a fresh
+`run-xbps.yml` builds every package here (`run-qt-rebuild-void.yml` bumps `dux-qt-base` when Void moves qt6), the greeter from a fresh
 `dux-greeter` clone (`distro/scripts/void/void-build.sh`), and publishes them
 all to `https://void.duxlabs.dev/dux-repo/current`.
 

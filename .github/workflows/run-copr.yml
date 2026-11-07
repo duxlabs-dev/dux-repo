@@ -32,6 +32,8 @@ on:
           - niri-git
           - quickshell
           - quickshell-git
+          - dux-qt-base
+          - dux-qt-base-git
           - qt6ct-kde
           - xwayland-satellite
           - xwayland-satellite-git

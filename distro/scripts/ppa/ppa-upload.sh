@@ -67,7 +67,7 @@ fi
 TEMP_DIR=$(mktemp -d "$TEMP_BASE/ppa_build_XXXXXX")
 trap "rm -rf $TEMP_DIR" EXIT
 
-AVAILABLE_PACKAGES=(cpptrace dux-search dux-gop ghostty matugen niri niri-git quickshell quickshell-git xwayland-satellite xwayland-satellite-git dux-calendar dux-calendar-git dux-files dux-files-git dux-greeter dux-greeter-git)
+AVAILABLE_PACKAGES=(cpptrace dux-search dux-gop ghostty matugen niri niri-git quickshell quickshell-git dux-qt-base dux-qt-base-git xwayland-satellite xwayland-satellite-git dux-calendar dux-calendar-git dux-files dux-files-git dux-greeter dux-greeter-git)
 declare -A RENAMED_TO=(
     [danksearch]=dux-search
     [dgop]=dux-gop
@@ -516,6 +516,14 @@ case "$PACKAGE_KIND" in
     quickshell)
         GIT_REPO="quickshell-mirror/quickshell"
         ;;
+    dux-qt-base)
+        GIT_REPO="duxlabs-dev/dux-qt-base"
+        ;;
+    dux-qt-base-git)
+        IS_GIT_PACKAGE=true
+        GIT_REPO="duxlabs-dev/dux-qt-base"
+        SOURCE_DIR="dux-qt-base-source"
+        ;;
     xwayland-satellite)
         GIT_REPO="Supreeeme/xwayland-satellite"
         ;;
@@ -765,8 +773,8 @@ if [ "$IS_GIT_PACKAGE" = true ] && [ -n "$GIT_REPO" ]; then
         success "Changelog written back to $PACKAGE_DIR/debian/changelog"
         
         rm -rf "$SOURCE_DIR"
-        if [ "$PACKAGE_KIND" = "dux-calendar-git" ] || [ "$PACKAGE_KIND" = "dux-files-git" ]; then
-            # Native rules expect core/, assets/, etc. at package root (same as OBS)
+        if [ "$PACKAGE_KIND" = "dux-calendar-git" ] || [ "$PACKAGE_KIND" = "dux-files-git" ] || [ "$PACKAGE_KIND" = "dux-qt-base-git" ]; then
+            # Native rules expect the upstream tree at package root (same as OBS)
             cp -a "$TEMP_CLONE"/. "$BUILD_DIR/"
             rm -rf "$BUILD_DIR/.git"
             SOURCE_DIR="."
@@ -1041,6 +1049,16 @@ fi
 # Handle packages that need pre-built binaries downloaded
 cd "$BUILD_DIR"
 case "$PACKAGE_KIND" in
+    dux-qt-base)
+        info "Downloading dux-qt-base source..."
+        VERSION=$(dpkg-parsechangelog -S Version | sed 's/-[^-]*$//' | sed 's/ppa[0-9]*$//')
+        if [ ! -f "CMakeLists.txt" ]; then
+            wget -O dux-qt-base-download.tar.gz "https://github.com/duxlabs-dev/dux-qt-base/archive/refs/tags/v${VERSION}.tar.gz"
+            tar -xzf dux-qt-base-download.tar.gz --strip-components=1
+            rm dux-qt-base-download.tar.gz
+            success "dux-qt-base source extracted"
+        fi
+        ;;
     cpptrace)
         info "Downloading cpptrace source..."
         # Get version from changelog

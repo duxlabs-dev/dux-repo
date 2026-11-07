@@ -1,0 +1,134 @@
+name: Rebuild for Arch Qt updates
+
+# dux-qt-base-bin ships a library linked against private Qt ABI, so every
+# Arch or Arch Linux ARM qt6 bump needs a fresh release asset and an AUR
+# pkgrel bump. Checks hourly, like the Fedora and Debian watchers.
+
+on:
+  schedule:
+    - cron: '47 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: qt-rebuild-arch
+  cancel-in-progress: false
+
+env:
+  QT_BASE_REPO: duxlabs-dev/dux-qt-base
+
+jobs:
+  check:
+    name: Check Arch qt6 and rebuild
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'duxlabs-dev'
+    container:
+      image: archlinux:base-devel
+    permissions:
+      contents: write
+
+    steps:
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed git github-cli jq curl libarchive
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Check Arch qt6 versions
+        id: check
+        run: distro/scripts/qt/qt-rebuild-arch-check.sh
+
+      - name: Commit baseline
+        if: steps.check.outputs.dirty == 'true'
+        env:
+          SUMMARY: ${{ steps.check.outputs.summary }}
+        run: |
+          git add distro/arch/qt6-baseline.json
+          if [[ -n "$SUMMARY" ]]; then
+            git commit -m "ci: rebuild arch qt packages for $SUMMARY"
+          else
+            git commit -m "ci: seed arch qt6 baseline"
+          fi
+          for attempt in 1 2 3; do
+            if git pull --rebase origin master && git push; then
+              exit 0
+            fi
+            echo "push attempt $attempt failed, retrying"
+            sleep 5
+          done
+          exit 1
+
+      - name: Create GitHub App token
+        if: steps.check.outputs.rebuild == 'true'
+        id: app_token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: dux-qt-base,dux-repo
+
+      # Rebuild the latest release's library against the new Qt and wait for the assets
+      - name: Rebuild release assets
+        if: steps.check.outputs.rebuild == 'true'
+        id: assets
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          QTVER: ${{ steps.check.outputs.qtver }}
+        run: |
+          set -euo pipefail
+          TAG=$(gh release view --repo "$QT_BASE_REPO" --json tagName --jq .tagName)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          BEFORE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          gh workflow run release.yml --repo "$QT_BASE_REPO" -f tag="$TAG"
+          RUN_ID=""
+          for _ in $(seq 1 12); do
+            sleep 10
+            RUN_ID=$(gh run list --repo "$QT_BASE_REPO" --workflow release.yml --event workflow_dispatch \
+              --created ">=$BEFORE" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+            [[ -z "$RUN_ID" ]] || break
+          done
+          [[ -n "$RUN_ID" ]] || { echo "::error::release run did not appear"; exit 1; }
+          echo "run=$RUN_ID" >> "$GITHUB_OUTPUT"
+          gh run watch "$RUN_ID" --repo "$QT_BASE_REPO" --exit-status
+          ASSETS=$(gh release view "$TAG" --repo "$QT_BASE_REPO" --json assets --jq '.assets[].name')
+          for pin in ${QTVER//,/ }; do
+            arch="${pin%%:*}"
+            ver="${pin#*:}"
+            want="dux-qt-base-${TAG#v}-qt${ver}-${arch}.tar.zst"
+            grep -qx "$want" <<<"$ASSETS" || { echo "::error::$want missing after rebuild (mirror lag?)"; exit 1; }
+          done
+
+      - name: Update AUR packages
+        if: steps.check.outputs.rebuild == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          QTVER: ${{ steps.check.outputs.qtver }}
+          SUMMARY: ${{ steps.check.outputs.summary }}
+        run: |
+          gh api "repos/${{ github.repository }}/dispatches" \
+            -f event_type=arch-qt-rebuild \
+            -f "client_payload[qtver]=$QTVER" \
+            -f "client_payload[bump_pkgrel]=true" \
+            -f "client_payload[message]=rebuild for $SUMMARY"
+
+      - name: Summary
+        if: steps.check.outputs.rebuild == 'true'
+        env:
+          SUMMARY: ${{ steps.check.outputs.summary }}
+        run: |
+          {
+            echo "## Arch Qt rebuild triggered"
+            echo ""
+            echo "$SUMMARY"
+            echo ""
+            echo "- release run: https://github.com/$QT_BASE_REPO/actions/runs/${{ steps.assets.outputs.run }}"
+            echo "- AUR update dispatched to run-aur.yml (arch-qt-rebuild)"
+          } >> "$GITHUB_STEP_SUMMARY"

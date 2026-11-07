@@ -26,6 +26,7 @@
 
 ### Shell & Utilities
 - **quickshell** - QtQuick-based Wayland desktop shell framework
+- **dux-qt-base** / **dux-qt-base-git** - Quickshell QML runtime as a shared library (`libdux-qt-base.so.0`), the UI runtime for Dux Shell and Dux Labs apps
 - **matugen** - Material Design 3 color palette generator for themes
 - **cliphist** - Wayland clipboard manager with history support
 - **dux-search** - Fast application launcher and file search tool (`dsearch`)
@@ -251,9 +252,15 @@ All packages support:
 
 #### Automatic rebuilds on Fedora Qt updates
 
-quickshell, quickshell-git and qt6ct-kde link private Qt ABI and must be rebuilt whenever Fedora ships a new qt6-qtbase, qt6-qtdeclarative or qt6-qtwayland. The `Rebuild for Fedora Qt updates` workflow (`.github/workflows/run-qt-rebuild.yml`) runs hourly: it queries the Fedora repos for every Fedora chroot in the COPR project, compares against `distro/fedora/qt6-baseline.json`, bumps the three specs once and triggers the COPR builds. Run it by hand from the Actions tab, or fire `repository_dispatch` with event type `fedora-qt-update` (the api.danklinux.com server does this when a matching bodhi update reaches stable).
+quickshell, quickshell-git, dux-qt-base, dux-qt-base-git and qt6ct-kde link private Qt ABI and must be rebuilt whenever Fedora ships a new qt6-qtbase, qt6-qtdeclarative or qt6-qtwayland. The `Rebuild for Fedora Qt updates` workflow (`.github/workflows/run-qt-rebuild.yml`) runs hourly: it queries the Fedora repos for every Fedora chroot in the COPR project, compares against `distro/fedora/qt6-baseline.json`, bumps the Qt-linked specs once and triggers the COPR builds. Run it by hand from the Actions tab, or fire `repository_dispatch` with event type `fedora-qt-update` (the api.danklinux.com server does this when a matching bodhi update reaches stable).
 
-Debian and Ubuntu get the same treatment from `Rebuild for Debian/Ubuntu Qt updates` (`.github/workflows/run-qt-rebuild-deb.yml`, hourly): it reads the published OBS Debian repos and the Ubuntu archive, keeps `distro/qt6-baseline-deb.json`, bumps `.dbN` on OBS (debian only, openSUSE rebuilds itself) and uploads `ppaN` for the affected Ubuntu series only. Void ships no Qt private-ABI package here.
+Debian and Ubuntu get the same treatment from `Rebuild for Debian/Ubuntu Qt updates` (`.github/workflows/run-qt-rebuild-deb.yml`, hourly): it reads the published OBS Debian repos and the Ubuntu archive, keeps `distro/qt6-baseline-deb.json`, bumps `.dbN` on OBS (debian only, openSUSE rebuilds itself) and uploads `ppaN` for the affected Ubuntu series only. Void gets `Rebuild for Void Qt updates` (`.github/workflows/run-qt-rebuild-void.yml`, hourly): it reads the Void `current` repodata, keeps `distro/void/qt6-baseline.json`, bumps `revision` in the `dux-qt-base` template and dispatches `run-xbps.yml` for it. quickshell on Void is Void's own package and is rebuilt by Void.
+
+Arch gets `Rebuild for Arch Qt updates` (`.github/workflows/run-qt-rebuild-arch.yml`, hourly): it reads the Arch x86_64 package API and the Arch Linux ARM `extra.db`, keeps `distro/arch/qt6-baseline.json`, and when a whole qt6 set moved it reruns the dux-qt-base `Create Release` workflow for the latest tag so fresh `dux-qt-base-<ver>-qt<qtver>-<arch>.tar.zst` assets exist, then dispatches `run-aur.yml` (`arch-qt-rebuild`) to repin `_qtver_<arch>` in `dux-qt-base-bin` and bump `pkgrel` on it and on `dux-qt-base`. An arch whose qt6 packages disagree is left for the next hour so a half-finished rollout is never pinned.
+
+#### AUR
+
+The AUR packages we maintain (`dux-*-bin`, `dux-qt-base`, `dux-qt-base-bin`, and the `-git` packages) are pushed by `Update AUR Packages` (`.github/workflows/run-aur.yml`) through `distro/scripts/aur/aur-update.sh`. Release packages follow the latest GitHub release every six hours and on `suite-release`, `greeter-release` and `qt-base-release` dispatches; git packages only move on a manual `pkgrel` bump. The script refreshes checksums with `updpkgsums`, regenerates `.SRCINFO`, and retries the AUR clone and push up to `AUR_RETRIES` (8) times with backoff, rebasing on the remote between attempts. It needs the `AUR_SSH_KEY` and `AUR_KNOWN_HOSTS` secrets.
 
 ## Contributing
 

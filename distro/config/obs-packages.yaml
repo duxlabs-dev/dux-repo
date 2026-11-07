@@ -409,6 +409,45 @@ packages:
       directory_name: "dux-greeter-git-source"
       compression: gz
 
+  dux-qt-base:
+    owners: [duxlabs]
+    type: stable
+    upstream:
+      repo: duxlabs-dev/dux-qt-base
+      source_type: github_release
+    distros:
+      - debian
+      - opensuse
+    build:
+      language: cpp
+      requires:
+        - cmake
+        - qt6
+    tarball:
+      directory_name: "dux-qt-base-{version}"
+      compression: gz
+
+  dux-qt-base-git:
+    owners: [duxlabs]
+    type: git
+    upstream:
+      repo: duxlabs-dev/dux-qt-base
+      branch: master
+    base_version:
+      from_stable: dux-qt-base
+      fallback: "0.3.2"
+    distros:
+      - debian
+      - opensuse
+    build:
+      language: cpp
+      requires:
+        - cmake
+        - qt6
+    tarball:
+      directory_name: "dux-qt-base-git-source"
+      compression: gz
+
   # ============================================================================
   # LEGACY NAMES (home:AvengeMedia:danklinux only)
   # ============================================================================
@@ -582,12 +621,14 @@ groups:
     - matugen-snapshot
     - niri
     - quickshell
+    - dux-qt-base
     - cpptrace
     - xwayland-satellite
 
   all-git:
     - niri-git
     - quickshell-git
+    - dux-qt-base-git
     - xwayland-satellite-git
     - dux-calendar-git
     - dux-files-git
@@ -606,6 +647,8 @@ groups:
     - niri-git
     - quickshell
     - quickshell-git
+    - dux-qt-base
+    - dux-qt-base-git
     - cpptrace
     - xwayland-satellite
     - xwayland-satellite-git
@@ -642,6 +685,8 @@ groups:
   cpp-packages:
     - quickshell
     - quickshell-git
+    - dux-qt-base
+    - dux-qt-base-git
     - cpptrace
     - cli11
 

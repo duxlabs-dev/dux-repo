@@ -16,7 +16,9 @@ PPA_NAME="${PPA_NAME:-dux-repo}"
 PPA_ARCHIVES="${PPA_ARCHIVES:-$PPA_OWNER/$PPA_NAME}"
 PPA_SERIES="${PPA_SERIES:-resolute stonking}"
 LAUNCHPAD_API="${LAUNCHPAD_API:-https://api.launchpad.net/1.0}"
-QT_DEB_PACKAGES="${QT_DEB_PACKAGES:-quickshell quickshell-git}"
+QT_DEB_PACKAGES="${QT_DEB_PACKAGES:-quickshell quickshell-git dux-qt-base dux-qt-base-git}"
+# source package -> binary package whose Depends carry the qt6-base-private-abi
+declare -A QT_DEB_BINARY=([dux-qt-base]=libdux-qt-base0 [dux-qt-base-git]=libdux-qt-base0-git)
 QT_BASELINE="${QT_BASELINE:-distro/qt6-baseline-deb.json}"
 GITHUB_OUTPUT="${GITHUB_OUTPUT:-/dev/null}"
 
@@ -69,6 +71,16 @@ obs_published() {
     '
 }
 
+# first owner project that publishes the package wins; packages only some owners build are not in every repo
+obs_published_any() {
+    local repo="$1" pkg="$2" base out
+    for base in "${OBS_DB_BASES[@]}"; do
+        out=$(obs_published "$base" "$repo" "${QT_DEB_BINARY[$pkg]:-$pkg}" 2>/dev/null || true)
+        [[ -z "$out" ]] || { echo "$out"; return 0; }
+    done
+    return 1
+}
+
 launchpad_versions() {
     local url="$1"
     curl -fsSL "$url" | jq -r '.entries[].source_package_version'
@@ -102,13 +114,17 @@ declare -A OBS_REBUILD=() OBS_VERSION=() PPA_REBUILD=()
 echo "OBS Debian repos"
 for repo in "${OBS_REPOS[@]}"; do
     for pkg in "${PACKAGES[@]}"; do
-        read -r version abi < <(obs_published "$OBS_REPO_BASE" "$repo" "$pkg" || true)
+        read -r version abi < <(obs_published_any "$repo" "$pkg" || true) || true
+        old=$(jq -r --arg r "$repo" --arg p "$pkg" '.obs[$r][$p] // empty' <<<"$BASELINE")
+        if [[ -z "${abi:-}" && -z "$old" ]]; then
+            echo "  $repo $pkg not published yet, skipping"
+            continue
+        fi
         if [[ -z "${abi:-}" ]]; then
             echo "::error::$pkg not found in $repo Packages" >&2
             exit 1
         fi
         OBS_VERSION[$pkg]="$version"
-        old=$(jq -r --arg r "$repo" --arg p "$pkg" '.obs[$r][$p] // empty' <<<"$BASELINE")
         if [[ -z "$old" ]]; then
             NEXT=$(jq --arg r "$repo" --arg p "$pkg" --arg v "$abi" '.obs[$r][$p] = $v' <<<"$NEXT")
             SEEDED=true
@@ -165,7 +181,7 @@ for pkg in "${PACKAGES[@]}"; do
     max=$(db_suffix "${OBS_VERSION[$pkg]}")
     for base in "${OBS_DB_BASES[@]}"; do
         for repo in "${OBS_REPOS[@]}"; do
-            read -r version _ < <(obs_published "$base" "$repo" "$pkg" || true) || continue
+            read -r version _ < <(obs_published "$base" "$repo" "${QT_DEB_BINARY[$pkg]:-$pkg}" || true) || continue
             n=$(db_suffix "$version")
             (( n > max )) && max=$n
         done

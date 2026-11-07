@@ -60,6 +60,8 @@ jobs:
           git add distro/fedora/qt6-baseline.json \
             distro/fedora/quickshell/quickshell.spec \
             distro/fedora/quickshell/quickshell-git.spec \
+            distro/fedora/dux-qt-base/dux-qt-base.spec \
+            distro/fedora/dux-qt-base/dux-qt-base-git.spec \
             distro/fedora/qt6ct-kde/qt6ct-kde.spec
           if [[ "$BUMPED" == "true" ]]; then
             git commit -m "ci: rebuild qt packages for $SUMMARY"

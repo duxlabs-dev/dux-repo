@@ -1,0 +1,172 @@
+name: Update AUR Packages
+
+# Pushes pkgver/pkgrel bumps to the AUR packages we maintain. Release packages
+# follow GitHub releases; git packages only move on an explicit pkgrel bump.
+# AUR pushes are flaky, so distro/scripts/aur/aur-update.sh retries clone and push.
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to update'
+        required: false
+        type: choice
+        options:
+          - all
+          - dux-calendar-bin
+          - dux-files-bin
+          - dux-greeter-bin
+          - dux-search-bin
+          - dux-qt-base
+          - dux-qt-base-bin
+          - dux-shell-git
+          - dux-calendar-git
+          - dux-files-git
+          - dux-greeter-git
+          - dux-search-git
+          - dux-gop-git
+          - dux-qt-base-git
+        default: all
+      version:
+        description: 'Version to publish (release packages; default: latest GitHub release)'
+        required: false
+        default: ''
+      pkgrel:
+        description: 'pkgrel to set (rebuilds; default: 1 on a new version)'
+        required: false
+        default: ''
+      qtver:
+        description: 'Qt pins for dux-qt-base-bin, comma separated: X for every arch, aarch64:X for one'
+        required: false
+        default: ''
+      bump_pkgrel:
+        description: 'Add one to pkgrel (rebuild without a new version)'
+        type: boolean
+        required: false
+        default: false
+      message:
+        description: 'Commit message override'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Show the diff without pushing'
+        type: boolean
+        required: false
+        default: false
+  schedule:
+    - cron: '30 */6 * * *'
+  # From the satellite notify-packaging.yml workflows
+  repository_dispatch:
+    types: [greeter-release, suite-release, qt-base-release, arch-qt-rebuild]
+
+permissions:
+  contents: read
+
+# Every run pushes to the same AUR repos; never run two at once.
+concurrency:
+  group: aur-update
+  cancel-in-progress: false
+
+env:
+  AUR_RETRIES: 8
+
+jobs:
+  update:
+    name: Push AUR updates
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'duxlabs-dev'
+    container:
+      image: archlinux:base-devel
+
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git openssh pacman-contrib jq curl
+          useradd -m builder
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AUR ssh
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          AUR_KNOWN_HOSTS: ${{ secrets.AUR_KNOWN_HOSTS }}
+        run: |
+          : "${AUR_SSH_KEY:?AUR_SSH_KEY secret not set}" "${AUR_KNOWN_HOSTS:?AUR_KNOWN_HOSTS secret not set}"
+          install -d -m 700 -o builder -g builder /home/builder/.ssh
+          printf '%s\n' "$AUR_SSH_KEY" > /home/builder/.ssh/aur
+          printf '%s\n' "$AUR_KNOWN_HOSTS" > /home/builder/.ssh/known_hosts
+          printf 'Host aur.archlinux.org\n  IdentityFile ~/.ssh/aur\n  IdentitiesOnly yes\n  User aur\n' > /home/builder/.ssh/config
+          chown builder:builder /home/builder/.ssh/*
+          chmod 600 /home/builder/.ssh/aur /home/builder/.ssh/config
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+
+      - name: Plan packages
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_TYPE: ${{ github.event.action }}
+          SELECTED: ${{ github.event.inputs.package || 'all' }}
+        run: |
+          case "$EVENT_NAME" in
+            repository_dispatch)
+              case "$DISPATCH_TYPE" in
+                greeter-release) PACKAGES="dux-greeter-bin" ;;
+                qt-base-release) PACKAGES="dux-qt-base dux-qt-base-bin" ;;
+                arch-qt-rebuild) PACKAGES="dux-qt-base dux-qt-base-bin" ;;
+                suite-release)   PACKAGES=$(distro/scripts/aur/aur-update.sh --list-release | tr '\n' ' ') ;;
+                *) echo "Unknown dispatch type: $DISPATCH_TYPE" >&2; exit 1 ;;
+              esac
+              ;;
+            schedule)
+              PACKAGES=$(distro/scripts/aur/aur-update.sh --list-release | tr '\n' ' ')
+              ;;
+            *)
+              if [ "$SELECTED" = all ]; then
+                PACKAGES=$(distro/scripts/aur/aur-update.sh --list | tr '\n' ' ')
+              else
+                PACKAGES="$SELECTED"
+              fi
+              ;;
+          esac
+          echo "packages=$PACKAGES" >> "$GITHUB_OUTPUT"
+          echo "Packages: $PACKAGES"
+
+      - name: Update packages
+        env:
+          PACKAGES: ${{ steps.plan.outputs.packages }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # workflow_dispatch inputs, or the arch-qt-rebuild client_payload
+          VERSION: ${{ github.event.inputs.version }}
+          PKGREL: ${{ github.event.inputs.pkgrel }}
+          QTVER: ${{ github.event.inputs.qtver || github.event.client_payload.qtver }}
+          BUMP_PKGREL: ${{ github.event.inputs.bump_pkgrel || github.event.client_payload.bump_pkgrel }}
+          MESSAGE: ${{ github.event.inputs.message || github.event.client_payload.message }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: |
+          ARGS=()
+          [ -z "$VERSION" ] || ARGS+=("--version=$VERSION")
+          [ -z "$PKGREL" ] || ARGS+=("--pkgrel=$PKGREL")
+          [ "$BUMP_PKGREL" != true ] || ARGS+=(--bump-pkgrel)
+          [ -z "$MESSAGE" ] || ARGS+=("--message=$MESSAGE")
+          [ "$DRY_RUN" != true ] || ARGS+=(--dry-run)
+          FAILED=()
+          for pkg in $PACKAGES; do
+            PKG_ARGS=("${ARGS[@]}")
+            # only the -bin package carries _qtver pins
+            if [ -n "$QTVER" ] && [ "$pkg" = dux-qt-base-bin ]; then
+              for q in ${QTVER//,/ }; do PKG_ARGS+=("--qtver=$q"); done
+            fi
+            echo "::group::$pkg"
+            if su builder -c "cd '$GITHUB_WORKSPACE' && GITHUB_TOKEN='$GITHUB_TOKEN' AUR_RETRIES='$AUR_RETRIES' distro/scripts/aur/aur-update.sh '$pkg' $(printf "'%s' " "${PKG_ARGS[@]}")"; then
+              echo "- $pkg: ok" >> "$GITHUB_STEP_SUMMARY"
+            else
+              FAILED+=("$pkg")
+              echo "- $pkg: FAILED" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "::endgroup::"
+          done
+          if [ ${#FAILED[@]} -gt 0 ]; then
+            echo "::error::failed: ${FAILED[*]}"
+            exit 1
+          fi

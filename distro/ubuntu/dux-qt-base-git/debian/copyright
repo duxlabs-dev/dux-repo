@@ -1,0 +1,30 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: dux-qt-base
+Upstream-Contact: Avenge Media <AvengeMedia.US@gmail.com>
+Source: https://github.com/duxlabs-dev/dux-qt-base
+Comment: fork of quickshell (https://git.outfoxxed.me/quickshell/quickshell)
+ by outfoxxed, rebuilt as a shared library. the full license texts ship in
+ the source tree as LICENSE (LGPL-3.0) and LICENSE-GPL (GPL-3.0).
+
+Files: *
+Copyright: 2024-2026 outfoxxed and quickshell contributors
+           2026 Avenge Media LLC
+License: LGPL-3.0-only
+
+License: LGPL-3.0-only
+ This library is free software; you can redistribute it and/or modify it
+ under the terms of the GNU Lesser General Public License version 3 as
+ published by the Free Software Foundation.
+ .
+ This library is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
+ General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public License
+ along with this library. If not, see <https://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU Lesser General Public
+ License version 3 can be found in "/usr/share/common-licenses/LGPL-3" and
+ the GNU General Public License version 3 it incorporates by reference in
+ "/usr/share/common-licenses/GPL-3".

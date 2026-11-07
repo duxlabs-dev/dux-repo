@@ -143,6 +143,8 @@ fi
 # Package build flags
 BUILD_QUICKSHELL=false
 BUILD_QUICKSHELL_GIT=false
+BUILD_DUX_QT_BASE=false
+BUILD_DUX_QT_BASE_GIT=false
 BUILD_DUX_GOP=false
 BUILD_DGOP=false
 BUILD_MATUGEN=false
@@ -174,6 +176,8 @@ if [[ "${FORCE_PACKAGE:-}" == "all" ]]; then
     echo "📦 Force-all: enabling builds for every package"
     BUILD_QUICKSHELL=true
     BUILD_QUICKSHELL_GIT=true
+    BUILD_DUX_QT_BASE=true
+    BUILD_DUX_QT_BASE_GIT=true
     BUILD_DUX_GOP=true
     BUILD_DGOP=true
     BUILD_MATUGEN=true
@@ -208,6 +212,14 @@ fi
 
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/quickshell/quickshell-git.spec"; then
     BUILD_QUICKSHELL_GIT=true
+fi
+
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-qt-base/dux-qt-base.spec"; then
+    BUILD_DUX_QT_BASE=true
+fi
+
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-qt-base/dux-qt-base-git.spec"; then
+    BUILD_DUX_QT_BASE_GIT=true
 fi
 
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-gop/dux-gop.spec"; then
@@ -321,6 +333,8 @@ if [[ -z "$CHANGED_FILES" ]]; then
 
     echo "$UNCOMMITTED" | grep -q "distro/fedora/quickshell/quickshell.spec" && BUILD_QUICKSHELL=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/quickshell/quickshell-git.spec" && BUILD_QUICKSHELL_GIT=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-qt-base/dux-qt-base.spec" && BUILD_DUX_QT_BASE=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-qt-base/dux-qt-base-git.spec" && BUILD_DUX_QT_BASE_GIT=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-gop/dux-gop.spec" && BUILD_DUX_GOP=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/matugen/matugen.spec" && BUILD_MATUGEN=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/ghostty/ghostty.spec" && BUILD_GHOSTTY=true
@@ -360,6 +374,14 @@ fi
 
 if [[ "$BUILD_QUICKSHELL_GIT" == true ]] || [[ "$FORCE_PACKAGE" == "quickshell-git" ]]; then
     trigger_build "quickshell-git" "distro/fedora/quickshell/quickshell-git.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
+if [[ "$BUILD_DUX_QT_BASE" == true ]] || [[ "$FORCE_PACKAGE" == "dux-qt-base" ]]; then
+    trigger_build "dux-qt-base" "distro/fedora/dux-qt-base/dux-qt-base.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
+if [[ "$BUILD_DUX_QT_BASE_GIT" == true ]] || [[ "$FORCE_PACKAGE" == "dux-qt-base-git" ]]; then
+    trigger_build "dux-qt-base-git" "distro/fedora/dux-qt-base/dux-qt-base-git.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
 fi
 
 if [[ "$BUILD_DUX_GOP" == true ]] || [[ "$FORCE_PACKAGE" == "dux-gop" ]]; then

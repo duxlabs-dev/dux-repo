@@ -25,6 +25,8 @@ on:
           - niri-git
           - quickshell
           - quickshell-git
+          - dux-qt-base
+          - dux-qt-base-git
           - xwayland-satellite
           - xwayland-satellite-git
         default: "all"

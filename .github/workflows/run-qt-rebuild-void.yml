@@ -1,0 +1,87 @@
+name: Rebuild for Void Qt updates
+
+# Our XBPS repo builds dux-qt-base against whatever qt6 Void ships; Void does
+# not rebuild it for us, so a qt6 bump there needs a template revision bump and
+# a fresh build. Checks hourly, like the Fedora, Debian and Arch watchers.
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: qt-rebuild-void
+  cancel-in-progress: false
+
+jobs:
+  qt-rebuild:
+    name: Check Void qt6 and rebuild
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'duxlabs-dev'
+    permissions:
+      contents: write
+      actions: write
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y jq curl libarchive-tools python3
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Check Void qt6 versions
+        id: check
+        run: distro/scripts/qt/qt-rebuild-void-check.sh
+
+      - name: Commit and push
+        if: steps.check.outputs.dirty == 'true'
+        env:
+          BUMPED: ${{ steps.check.outputs.bumped }}
+          SUMMARY: ${{ steps.check.outputs.summary }}
+        run: |
+          git add distro/void/qt6-baseline.json distro/void/srcpkgs/dux-qt-base/template
+          if [[ "$BUMPED" == "true" ]]; then
+            git commit -m "ci: rebuild void qt packages for $SUMMARY"
+          else
+            git commit -m "ci: seed void qt6 baseline"
+          fi
+          for attempt in 1 2 3; do
+            if git pull --rebase origin master && git push; then
+              exit 0
+            fi
+            echo "push attempt $attempt failed, retrying"
+            sleep 5
+          done
+          exit 1
+
+      # run-xbps.yml builds a package whenever its version_revision file is missing from the repo
+      - name: Trigger XBPS builds
+        if: steps.check.outputs.bumped == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGES: ${{ steps.check.outputs.packages }}
+        run: |
+          for pkg in $PACKAGES; do
+            gh workflow run run-xbps.yml --repo "${{ github.repository }}" -f package="$pkg"
+            echo "dispatched run-xbps.yml for $pkg" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Summary
+        if: steps.check.outputs.bumped == 'true'
+        env:
+          SUMMARY: ${{ steps.check.outputs.summary }}
+        run: |
+          {
+            echo "## Void Qt rebuild triggered"
+            echo ""
+            echo "$SUMMARY"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -60,6 +60,8 @@ PACKAGES=(
     "dux-files:duxlabs-dev/dux-files:release"
     "dux-files-git:duxlabs-dev/dux-files:git"
     "dux-gop:duxlabs-dev/dux-gop:release"
+    "dux-qt-base:duxlabs-dev/dux-qt-base:release"
+    "dux-qt-base-git:duxlabs-dev/dux-qt-base:git"
 )
 
 declare -A OLD_NAME=(

@@ -32,6 +32,8 @@ PACKAGES=(
     "dux-gop:duxlabs-dev/dux-gop:release"
     "dux-greeter:duxlabs-dev/dux-greeter:release"
     "dux-greeter-git:duxlabs-dev/dux-greeter:git"
+    "dux-qt-base:duxlabs-dev/dux-qt-base:release"
+    "dux-qt-base-git:duxlabs-dev/dux-qt-base:git"
 )
 
 # On duxlabs the old names ship as transitional binaries, which must sort above the last upload under the old name

@@ -1,0 +1,58 @@
+Source: dux-qt-base
+Section: libs
+Priority: optional
+Maintainer: Avenge Media <AvengeMedia.US@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               cmake,
+               ninja-build,
+               pkgconf,
+               qt6-base-dev (>= 6.8.0),
+               qt6-base-private-dev,
+               qt6-declarative-dev,
+               qt6-declarative-private-dev,
+               qt6-wayland-dev,
+               qt6-wayland-private-dev,
+               qt6-shadertools-dev,
+               spirv-tools,
+               libcli11-dev,
+               libwayland-dev,
+               wayland-protocols (>= 1.41),
+               libxcb1-dev,
+               libxkbcommon-dev,
+               libpipewire-0.3-dev,
+               libpam0g-dev,
+               libpolkit-agent-1-dev,
+               libpolkit-gobject-1-dev,
+               libglib2.0-dev,
+               libdrm-dev,
+               libgbm-dev,
+               libegl-dev,
+               libvulkan-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/duxlabs-dev/dux-qt-base
+Vcs-Browser: https://github.com/duxlabs-dev/dux-qt-base
+Vcs-Git: https://github.com/duxlabs-dev/dux-qt-base.git
+
+Package: libdux-qt-base0
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         qt6-wayland
+Recommends: libqt6svg6
+Description: Quickshell QML runtime as a shared library
+ libdux-qt-base is the quickshell QML runtime built as a shared library with
+ a C entry point. dqb_main() runs the quickshell command line inside the
+ calling process so Go and C programs can embed it. QML modules are compiled
+ into the library.
+
+Package: libdux-qt-base-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends: ${misc:Depends},
+         libdux-qt-base0 (= ${binary:Version}),
+         pkgconf
+Description: Quickshell QML runtime as a shared library - development files
+ Header and pkg-config file for linking against libdux-qt-base. Go consumers
+ use `#cgo pkg-config: dux-qt-base`.

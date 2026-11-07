@@ -19,6 +19,7 @@ on:
           - dux-search
           - dux-gop
           - dux-files
+          - dux-qt-base
           - dux-greeter
           - dux-greeter-git
         default: 'all'
@@ -73,7 +74,7 @@ jobs:
           SELECTED: ${{ github.event.inputs.package || 'all' }}
         run: |
           # Transitional old-name metas last: xbps-src needs their targets built first.
-          ALL="dux-gop dux-search dux-calendar dux-files dux-greeter-git dux-greeter dgop danksearch dankcalendar dms-greeter-git dms-greeter"
+          ALL="dux-gop dux-search dux-calendar dux-files dux-qt-base dux-greeter-git dux-greeter dgop danksearch dankcalendar dms-greeter-git dms-greeter"
           case "$EVENT_NAME" in
             repository_dispatch)
               case "$DISPATCH_TYPE" in

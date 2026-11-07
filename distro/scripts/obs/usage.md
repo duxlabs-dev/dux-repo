@@ -133,8 +133,8 @@ Same source, incremented `.db` suffix. Use for packaging fixes, dependency updat
 
 ## Packages
 
-**Stable:** dux-calendar, dux-files, dux-gop, dux-greeter, dux-search, ghostty, matugen, niri (Debian), quickshell, xwayland-satellite
-**Git:** dux-calendar-git, dux-files-git, dux-greeter-git, niri-git, quickshell-git, xwayland-satellite-git
+**Stable:** dux-calendar, dux-files, dux-gop, dux-greeter, dux-qt-base, dux-search, ghostty, matugen, niri (Debian), quickshell, xwayland-satellite
+**Git:** dux-calendar-git, dux-files-git, dux-greeter-git, dux-qt-base-git, niri-git, quickshell-git, xwayland-satellite-git
 **Snapshot (stable):** quickshell (stable) uses [snapshots.yaml](../../snapshots.yaml) to track the upstream commit until a newer release than `base_version` appears.
 
 ## Testing
