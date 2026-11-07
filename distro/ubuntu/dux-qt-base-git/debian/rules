@@ -2,18 +2,29 @@
 
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
-DEB_VERSION_UPSTREAM := $(shell dpkg-parsechangelog -S Version | sed 's/-[^-]*$$//')
+# 1:0.3.2.db2+2.1 / 0.3.2ppa3 / 0.3.2+git917.abcdef12ppa1 -> upstream part only
+DEB_VERSION_UPSTREAM := $(shell dpkg-parsechangelog -S Version | sed -E 's/^[0-9]+://; s/-[^-]*$$//; s/\+[0-9.]+$$//; s/\.db[0-9]+$$//; s/ppa[0-9]+$$//')
 GIT_REVISION := $(shell echo "$(DEB_VERSION_UPSTREAM)" | sed -n 's/.*+git[0-9]*\.\([a-f0-9]\{7,8\}\).*/\1/p')
+WL_BG_EFFECT := $(shell pkg-config --variable=pkgdatadir wayland-protocols)/staging/ext-background-effect/ext-background-effect-v1.xml
 
 %:
 	dh $@ --buildsystem=cmake+ninja
 
+# Debian 13 ships wayland-protocols 1.44; ext-background-effect arrived in 1.45
 override_dh_auto_configure:
+	if [ ! -f "$(WL_BG_EFFECT)" ]; then \
+		mkdir -p debian-extra-wayland/staging/ext-background-effect; \
+		cp debian/wayland-protocols-extra/staging/ext-background-effect/ext-background-effect-v1.xml debian-extra-wayland/staging/ext-background-effect/; \
+		sed -i 's|"\$${WAYLAND_PROTOCOLS}/staging/ext-background-effect"|"\$${CMAKE_SOURCE_DIR}/debian-extra-wayland/staging/ext-background-effect"|' src/wayland/background_effect/CMakeLists.txt; \
+	fi
 	dh_auto_configure -- \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		-DDISTRIBUTOR="Ubuntu PPA (libdux-qt-base0-git)" \
 		-DGIT_REVISION="$(if $(GIT_REVISION),$(GIT_REVISION),unknown)"
 
-# BUILD_TESTING is off, so there is no test target
 override_dh_auto_test:
 	:
+
+override_dh_auto_clean:
+	rm -rf debian-extra-wayland
+	dh_auto_clean
