@@ -12,3 +12,7 @@ override_dh_auto_configure:
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		-DDISTRIBUTOR="Ubuntu PPA (libdux-qt-base0)" \
 		-DGIT_REVISION="v$(DEB_VERSION_UPSTREAM)"
+
+# BUILD_TESTING is off, so there is no test target
+override_dh_auto_test:
+	:

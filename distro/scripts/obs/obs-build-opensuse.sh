@@ -698,6 +698,13 @@ log_info "━━━━━━━━━━━━━━━━━━━━━━━�
 OUTPUT_SPEC="$OUTPUT_DIR/${PACKAGE}.spec"
 cp "$SPEC_FILE" "$OUTPUT_SPEC"
 
+# OBS reads <package>-rpmlintrc from the package sources
+RPMLINTRC="$REPO_ROOT/distro/opensuse/${PACKAGE}-rpmlintrc"
+if [[ -f "$RPMLINTRC" ]]; then
+    cp "$RPMLINTRC" "$OUTPUT_DIR/"
+    log_info "Added rpmlint filter: $(basename "$RPMLINTRC")"
+fi
+
 # Update Version field
 sed -i "s/^Version:.*/Version:        $BASE_VERSION/" "$OUTPUT_SPEC"
 

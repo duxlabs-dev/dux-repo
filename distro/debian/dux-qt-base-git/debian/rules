@@ -13,3 +13,7 @@ override_dh_auto_configure:
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		-DDISTRIBUTOR="Debian (libdux-qt-base0-git)" \
 		-DGIT_REVISION="$(if $(GIT_REVISION),$(GIT_REVISION),unknown)"
+
+# BUILD_TESTING is off, so there is no test target
+override_dh_auto_test:
+	:

@@ -1,0 +1,2 @@
+# the git snapshot ships libdux-qt-base.so.0 under a -git suffixed name so it can coexist with dux-qt-base
+addFilter("libdux-qt-base0-git.* shlib-policy-name-error")
