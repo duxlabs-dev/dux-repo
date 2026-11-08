@@ -75,7 +75,7 @@ use `#cgo pkg-config: dux-qt-base`.
 
 %files
 %license LICENSE LICENSE-GPL
-%doc README.md UPSTREAM.md changelog/v%{version}.md
+%doc README.md UPSTREAM.md
 %{_libdir}/libdux-qt-base.so.0
 %{_libdir}/libdux-qt-base.so.0.*
 
