@@ -7,7 +7,7 @@ Name:           dux-greeter
 # Epoch 1: versions restarted at 1.0.0 when the greeter moved to its own repo;
 # the old package (built from Dux Shell) had reached 1.5.x.
 Epoch:          1
-Version:        2.1.1
+Version:        2.1.2
 Release:        1%{?dist}
 Summary:        %{pkg_summary}
 
@@ -273,6 +273,9 @@ if [ "$1" -eq 0 ] && [ -x /usr/sbin/semanage ]; then
 fi
 
 %changelog
+* Sun Nov 08 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1:2.1.2-1
+- update to 2.1.2
+
 * Fri Nov 06 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1:2.1.1-1
 - update to 2.1.1
 
