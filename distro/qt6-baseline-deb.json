@@ -2,6 +2,7 @@
   "obs": {
     "Debian_13": {
       "dux-qt-base": "6.8.2",
+      "dux-qt-base-git": "6.8.2",
       "quickshell": "6.8.2",
       "quickshell-git": "6.8.2"
     },
