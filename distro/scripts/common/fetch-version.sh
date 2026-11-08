@@ -49,8 +49,13 @@ if [[ "$TYPE" == "release" ]]; then
 
     # If no releases (or not found in latest), try tags endpoint
     if [[ -z "$RELEASE_TAG" ]] || [[ "$RELEASE_TAG" == "null" ]]; then
-        DATA=$(gh_curl "https://api.github.com/repos/${REPO}/tags") || exit 1
-        echo "$DATA" | jq -r '.[0].name // empty'
+        DATA=$(gh_curl "https://api.github.com/repos/${REPO}/tags?per_page=100") || exit 1
+        # Highest plain version tag; skips side tags like ghostty's vt-1.0.0 and "tip"
+        TAG=$(echo "$DATA" | jq -r '.[].name' | grep -E '^v?[0-9]+(\.[0-9]+)*$' | sort -V | tail -n1)
+        if [[ -z "$TAG" ]]; then
+            TAG=$(echo "$DATA" | jq -r '.[0].name // empty')
+        fi
+        echo "$TAG"
     else
         echo "$RELEASE_TAG"
     fi

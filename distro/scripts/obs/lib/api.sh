@@ -221,15 +221,18 @@ get_latest_tag() {
         return 0
     fi
 
-    local response=$(api_call_with_retry "$GITHUB_API/repos/$repo/tags" "GET")
+    local response=$(api_call_with_retry "$GITHUB_API/repos/$repo/tags?per_page=100" "GET")
 
     if [[ $? -ne 0 ]]; then
         log_error "Failed to fetch tags for $repo"
         return 1
     fi
 
-    # Extract first tag name and strip 'v' prefix
-    local tag=$(echo "$response" | grep -m1 '"name"' | grep -oP ':\s*"\K[^"]+')
+    # Highest plain version tag; skips side tags like ghostty's vt-1.0.0 and "tip"
+    local tag=$(echo "$response" | grep -oP '"name":\s*"\K[^"]+' | grep -E '^v?[0-9]+(\.[0-9]+)*$' | sort -V | tail -n1)
+    if [[ -z "$tag" ]]; then
+        tag=$(echo "$response" | grep -m1 '"name"' | grep -oP ':\s*"\K[^"]+')
+    fi
     local version="${tag#v}"
 
     if [[ -z "$version" ]]; then
