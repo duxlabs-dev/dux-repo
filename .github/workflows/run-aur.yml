@@ -157,8 +157,10 @@ jobs:
             if [ -n "$QTVER" ] && [ "$pkg" = dux-qt-base-bin ]; then
               for q in ${QTVER//,/ }; do PKG_ARGS+=("--qtver=$q"); done
             fi
+            QUOTED_ARGS=""
+            [ ${#PKG_ARGS[@]} -eq 0 ] || QUOTED_ARGS=$(printf "'%s' " "${PKG_ARGS[@]}")
             echo "::group::$pkg"
-            if su builder -c "cd '$GITHUB_WORKSPACE' && GITHUB_TOKEN='$GITHUB_TOKEN' AUR_RETRIES='$AUR_RETRIES' distro/scripts/aur/aur-update.sh '$pkg' $(printf "'%s' " "${PKG_ARGS[@]}")"; then
+            if su builder -c "cd '$GITHUB_WORKSPACE' && GITHUB_TOKEN='$GITHUB_TOKEN' AUR_RETRIES='$AUR_RETRIES' distro/scripts/aur/aur-update.sh '$pkg' $QUOTED_ARGS"; then
               echo "- $pkg: ok" >> "$GITHUB_STEP_SUMMARY"
             else
               FAILED+=("$pkg")
