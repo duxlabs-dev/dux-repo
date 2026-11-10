@@ -4,7 +4,7 @@
 %global commit      6a3a736aa24259d6c9c74cf7800f365f317c0aa5
 %global commits     930
 %global snapdate    20261110
-%global tag         0.3.6
+%global tag         0.3.7
 
 Name:           dux-qt-base-git
 Version:        %{tag}^%{commits}.git%(c=%{commit}; echo ${c:0:7})
