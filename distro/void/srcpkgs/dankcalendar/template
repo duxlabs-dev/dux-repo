@@ -3,7 +3,7 @@
 # Transitional package: pulls in dux-calendar, which replaces it, so
 # `xbps-install -Su` moves existing installs to the new name.
 pkgname=dankcalendar
-version=2.0.0
+version=2.1.2
 revision=2
 metapackage=yes
 depends="dux-calendar"

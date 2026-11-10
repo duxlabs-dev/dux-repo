@@ -2,8 +2,8 @@
 #
 # Package 'dux-search' installs the 'dsearch' binary (built from cmd/dsearch).
 pkgname=dux-search
-version=2.0.0
-revision=2
+version=2.1.1
+revision=1
 build_style=go
 go_import_path="github.com/duxlabs-dev/dux-search"
 go_package="${go_import_path}/cmd/dsearch"
@@ -13,7 +13,7 @@ maintainer="AvengeMedia <AvengeMedia.US@gmail.com>"
 license="MIT"
 homepage="https://duxlabs.dev/docs/dsearch/"
 distfiles="https://github.com/duxlabs-dev/dux-search/archive/refs/tags/v${version}.tar.gz"
-checksum=b33665b22692e12075b23acdbe3f03e4f3d64e50223f92820117e525d18aabe4
+checksum=dc325cec0303a87bee0f611308f71840ae9507e7db87cb7cec8b46ae4f0e5cda
 wrksrc="dux-search-${version}"
 replaces="danksearch>=0"
 provides="danksearch-${version}_${revision}"

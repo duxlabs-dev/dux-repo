@@ -3,7 +3,7 @@
 # Standalone Dux Labs file manager; installs the 'dfiles' binary with the
 # Quickshell UI embedded (-tags withshell).
 pkgname=dux-files
-version=2.0.0
+version=2.1.2
 revision=1
 build_style=go
 build_wrksrc="core"
@@ -18,7 +18,7 @@ homepage="https://github.com/duxlabs-dev/dux-files"
 changelog="https://github.com/duxlabs-dev/dux-files/releases"
 # Release tarball ships the dank-qml-common submodule and vendored Go modules
 distfiles="https://github.com/duxlabs-dev/dux-files/releases/download/v${version}/dfiles-${version}.tar.gz"
-checksum=5883246328482b37928c16a795d9f4a97f2fd71ed2f8772210284dede6a49739
+checksum=0d90a4c3e9338db1a6fecffbf86e91b9e07d545d4b7edb8cb14d757887fc6cf5
 wrksrc="dfiles-${version}"
 
 depends="quickshell qt6-declarative"

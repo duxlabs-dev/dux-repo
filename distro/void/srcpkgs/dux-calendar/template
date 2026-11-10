@@ -3,8 +3,8 @@
 # Standalone Dux Labs calendar app; installs the 'dcal' binary with the
 # Quickshell UI embedded (-tags withshell).
 pkgname=dux-calendar
-version=2.0.0
-revision=2
+version=2.1.2
+revision=1
 build_style=go
 build_wrksrc="core"
 go_import_path="github.com/duxlabs-dev/dux-calendar/core"
@@ -18,7 +18,7 @@ homepage="https://github.com/duxlabs-dev/dux-calendar"
 changelog="https://github.com/duxlabs-dev/dux-calendar/releases"
 # Release tarball ships the dux-qml-common submodule and vendored Go modules
 distfiles="https://github.com/duxlabs-dev/dux-calendar/releases/download/v${version}/dankcalendar-${version}.tar.gz"
-checksum=8c435530000c72beb12b756890c6553e0125cff0143975b512946259dc85cd10
+checksum=490daf4f86069c03000f03f2863a9e4a0bd63efb4c23ab104b39c794f053c66e
 wrksrc="dankcalendar-${version}"
 
 depends="quickshell libsecret qt6-declarative"
