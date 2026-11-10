@@ -72,19 +72,33 @@ jobs:
       matrix: ${{ steps.owners.outputs.matrix }}
 
     steps:
+      - name: Checkout package config
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: distro/config/obs-packages.yaml
+          sparse-checkout-cone-mode: false
+
       - name: Plan OBS owners
         id: owners
         env:
           OWNERS: ${{ inputs.owners || 'all' }}
-          PACKAGE: ${{ inputs.package || (github.event.action == 'qt-base-release' && 'dux-qt-base') || 'all' }}
+          DISPATCH_TYPE: ${{ github.event.action }}
+          PACKAGE: ${{ inputs.package || 'all' }}
         run: |
-          # duxlabs-only packages (owners: [duxlabs] in obs-packages.yaml) have no legacy leg
-          MATRIX=$(jq -cn --arg o "$OWNERS" --arg p "$PACKAGE" '[
+          case "$DISPATCH_TYPE" in
+            greeter-git) PACKAGE=dux-greeter-git ;;
+            greeter-release) PACKAGE=dux-greeter ;;
+            qt-base-release) PACKAGE=dux-qt-base ;;
+          esac
+          export PACKAGE
+          # A package with owners: in obs-packages.yaml only runs for those owners
+          PKG_OWNERS=$(yq -o=json -I=0 '.packages[strenv(PACKAGE)].owners // null' distro/config/obs-packages.yaml)
+          MATRIX=$(jq -cn --arg o "$OWNERS" --arg p "$PACKAGE" --argjson po "$PKG_OWNERS" '[
               {owner: "duxlabs", suffix: "", project: "home:duxlabs-dev:dux-repo"},
               {owner: "avengemedia", suffix: "_LEGACY", project: "home:AvengeMedia:danklinux"}
             ] | map(select($o == "all" or .owner == $o))
-            | map(select(.owner != "avengemedia" or ($p | IN("dux-qt-base", "dux-qt-base-git", "dux-files-git", "dux-calendar-git", "dux-greeter-git") | not)))
-            | if length == 0 then error("unknown owner: \($o)") else {include: .} end')
+            | map(select($po == null or (.owner | IN($po[]))))
+            | if length == 0 then error("no OBS owner \($o) builds \($p)") else {include: .} end')
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
           echo "OBS owners: $(jq -r '[.include[].owner] | join(", ")' <<< "$MATRIX")"
 
