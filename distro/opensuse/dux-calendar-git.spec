@@ -12,7 +12,7 @@ Source0:        dux-calendar.tar.gz
 
 BuildRequires:  systemd-rpm-macros
 
-Requires:       (quickshell-git or quickshell)
+Requires:       libdux-qt-base0
 Requires:       libsecret-1-0
 Requires:       libQt6Quick6
 

@@ -367,6 +367,7 @@ packages:
       compression: gz
 
   dux-files-git:
+    owners: [duxlabs]
     type: git
     upstream:
       repo: duxlabs-dev/dux-files
@@ -525,6 +526,8 @@ packages:
 
   dankcalendar-git:
     owners: [avengemedia]
+    # Deprecated legacy channel: git snapshots stay at their last quickshell build
+    frozen: true
     type: git
     upstream:
       repo: duxlabs-dev/dux-calendar
@@ -545,6 +548,8 @@ packages:
 
   dms-greeter-git:
     owners: [avengemedia]
+    # Deprecated legacy channel: git snapshots stay at their last quickshell build
+    frozen: true
     type: git
     upstream:
       repo: duxlabs-dev/dux-greeter

@@ -11,7 +11,7 @@ Vcs-Git: https://github.com/duxlabs-dev/dux-files.git
 Package: dux-files-git
 Architecture: any
 Depends: ${misc:Depends},
-         quickshell-git | quickshell,
+         libdux-qt-base0,
          libqt6quick6
 Recommends: polkitd,
             pkexec,

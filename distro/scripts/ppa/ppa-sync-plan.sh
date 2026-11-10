@@ -234,8 +234,8 @@ include_package() {
 
 TARGETS=()
 
-# 2.2-era packages with no legacy twin; the legacy owner never gets them
-DUXLABS_ONLY=(dux-qt-base dux-qt-base-git)
+# 2.2-era packages with no legacy twin, and git snapshots that need dux-qt-base; the legacy owner never gets them
+DUXLABS_ONLY=(dux-qt-base dux-qt-base-git dux-files-git dux-calendar-git dux-greeter-git)
 
 duxlabs_only() {
     local name="$1" p

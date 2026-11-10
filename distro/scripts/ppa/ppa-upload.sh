@@ -220,9 +220,9 @@ for old in "${!RENAMED_TO[@]}"; do
     OLD_NAME_OF[${RENAMED_TO[$old]}]="$old"
 done
 
-# 2.2-era packages with no legacy twin; the legacy owner never gets them
+# 2.2-era packages with no legacy twin, and git snapshots that need dux-qt-base; the legacy owner never gets them
 case "$PACKAGE" in
-    dux-qt-base|dux-qt-base-git)
+    dux-qt-base|dux-qt-base-git|dux-files-git|dux-calendar-git|dux-greeter-git|dankcalendar-git|dms-greeter-git)
         if [[ "$PPA_OWNER" == "avengemedia" ]]; then
             info "$PACKAGE is not published to ppa:${PPA_OWNER}, nothing to do"
             exit 0

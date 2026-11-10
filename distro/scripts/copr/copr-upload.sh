@@ -61,7 +61,7 @@ declare -A LEGACY_NAME=(
 )
 if [[ "$COPR_OWNER" == "avengemedia" ]]; then
     case "$PACKAGE" in
-        dux-qt-base|dux-qt-base-git)
+        dux-qt-base|dux-qt-base-git|dux-files-git|dux-calendar-git|dux-greeter-git|dankcalendar-git|dms-greeter-git)
             error "$PACKAGE is not published to the legacy $COPR_OWNER project"
             exit 1
             ;;

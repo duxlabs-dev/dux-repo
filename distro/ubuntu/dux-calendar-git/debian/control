@@ -11,7 +11,7 @@ Vcs-Git: https://github.com/duxlabs-dev/dux-calendar.git
 Package: dux-calendar-git
 Architecture: any
 Depends: ${misc:Depends},
-         quickshell-git | quickshell,
+         libdux-qt-base0,
          libsecret-1-0,
          libqt6quick6
 Conflicts: dux-calendar,

@@ -259,9 +259,10 @@ get_tarball_compression() {
     echo "$config" | yq eval '.tarball.compression // "gz"' -
 }
 
-# Whether PACKAGE builds for $OBS_OWNER (no owners list = every owner)
+# Whether PACKAGE builds for $OBS_OWNER (no owners list = every owner; frozen = none)
 package_has_owner() {
     local package="$1"
+    [[ "$(yq eval ".packages.\"$package\".frozen // false" "$CONFIG_FILE")" != true ]] || return 1
     local owners=$(yq eval ".packages.\"$package\".owners // [] | .[]" "$CONFIG_FILE")
 
     [[ -z "$owners" ]] || grep -qxF "$OBS_OWNER" <<< "$owners"

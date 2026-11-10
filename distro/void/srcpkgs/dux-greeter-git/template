@@ -25,7 +25,7 @@ conflicts="dux-greeter"
 replaces="dms-greeter-git>=0"
 provides="dux-greeter-${version}_${revision} dms-greeter-${version}_${revision} dms-greeter-git-${version}_${revision}"
 
-depends="greetd quickshell acl-progs dbus elogind pam_rundir mesa-dri"
+depends="greetd dux-qt-base acl-progs dbus elogind pam_rundir mesa-dri"
 
 make_dirs="/var/cache/dms-greeter 0750 _greeter _greeter"
 

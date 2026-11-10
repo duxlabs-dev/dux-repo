@@ -90,6 +90,12 @@ if ! validate_package "$PACKAGE"; then
     exit $ERR_CONFIG
 fi
 
+# Owner and frozen gate, so direct uploads cannot reach the deprecated legacy projects either
+if ! package_has_owner "$PACKAGE"; then
+    log_error "Package '$PACKAGE' is not built for OBS owner '$OBS_OWNER' ($OBS_PROJECT)"
+    exit $ERR_CONFIG
+fi
+
 # Validate artifacts directory
 if [[ ! -d "$ARTIFACTS_DIR" ]]; then
     log_error "Artifacts directory not found: $ARTIFACTS_DIR"

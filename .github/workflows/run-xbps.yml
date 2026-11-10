@@ -100,7 +100,6 @@ jobs:
               dux-gop) LEGACY+=(dgop) ;;
               dux-search) LEGACY+=(danksearch) ;;
               dux-calendar) LEGACY+=(dankcalendar) ;;
-              dux-greeter-git) LEGACY+=(dms-greeter-git) ;;
               dux-greeter) LEGACY+=(dms-greeter) ;;
             esac
           done
@@ -352,6 +351,8 @@ jobs:
                        "$NEW_REPOSITORY_DIR"/current/dux-files-*.xbps; do
               name="$(basename "$pkg")"
               case "$name" in
+                # Deprecated legacy channel: the git greeter stays at its last quickshell build
+                dms-greeter-git-*) continue ;;
                 dms-greeter-*) target=dms ;;
                 *) target=danklinux ;;
               esac

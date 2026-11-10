@@ -21,7 +21,7 @@ BuildRequires:      golang >= 1.25
 BuildRequires:      git-core
 BuildRequires:      systemd-rpm-macros
 
-Requires:          (quickshell-git or quickshell)
+Requires:          dux-qt-base
 Requires:          libsecret
 Requires:          qt6-qtdeclarative
 
