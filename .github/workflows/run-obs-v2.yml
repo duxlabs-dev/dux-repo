@@ -54,9 +54,9 @@ on:
         default: all
   schedule:
     - cron: "0 */6 * * *" # Every 6 hours for git packages
-  # From dux-greeter notify-packaging.yml
+  # From the satellite notify-packaging.yml workflows
   repository_dispatch:
-    types: [greeter-git, greeter-release, suite-release]
+    types: [greeter-git, greeter-release, suite-release, qt-base-release]
 
 # All runs commit to the same OBS packages; never run two at once.
 concurrency:
@@ -76,7 +76,7 @@ jobs:
         id: owners
         env:
           OWNERS: ${{ inputs.owners || 'all' }}
-          PACKAGE: ${{ inputs.package || 'all' }}
+          PACKAGE: ${{ inputs.package || (github.event.action == 'qt-base-release' && 'dux-qt-base') || 'all' }}
         run: |
           # duxlabs-only packages (owners: [duxlabs] in obs-packages.yaml) have no legacy leg
           MATRIX=$(jq -cn --arg o "$OWNERS" --arg p "$PACKAGE" '[
@@ -167,6 +167,7 @@ jobs:
             case "$DISPATCH_TYPE" in
               greeter-git) PACKAGES="dux-greeter-git" ;;
               greeter-release) PACKAGES="dux-greeter" ;;
+              qt-base-release) PACKAGES="dux-qt-base" ;;
               suite-release) PACKAGES="all" ;;
               *)
                 echo "Unknown repository_dispatch type: $DISPATCH_TYPE" >&2

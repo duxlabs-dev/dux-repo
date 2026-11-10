@@ -32,8 +32,9 @@ never-renamed `dux-files`) to `danklinux/current` and the greeter to
 the rebrand keep updating. `dms/current` is shared with the Dux Shell
 publisher; both use `publish-void-r2.sh` with an ETag guard so one cannot
 overwrite the other's index.
-A tool version bump goes in both `srcpkgs/<new>` and `legacy/srcpkgs/<old>`;
-the greeters are re-versioned at build time.
+Each run starts with `distro/scripts/void/void-update.sh`, which bumps the tool
+templates in `srcpkgs` and `legacy/srcpkgs` to the latest GitHub release and
+commits them; the greeters are re-versioned at build time.
 
 ## Distribution
 

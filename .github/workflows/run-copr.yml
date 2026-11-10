@@ -63,9 +63,9 @@ on:
       - 'distro/snapshots.yaml'
       - 'distro/fedora/**/*.spec'
 
-  # From dux-greeter notify-packaging.yml; handled like a scheduled run.
+  # From the satellite notify-packaging.yml workflows; handled like a scheduled run.
   repository_dispatch:
-    types: [greeter-git, greeter-release, suite-release]
+    types: [greeter-git, greeter-release, suite-release, qt-base-release]
 
 # The update job pushes commits; never run two at once.
 concurrency:

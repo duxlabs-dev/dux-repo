@@ -44,9 +44,9 @@ on:
         default: all
   schedule:
     - cron: '0 */6 * * *'  # Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
-  # From dux-greeter notify-packaging.yml
+  # From the satellite notify-packaging.yml workflows
   repository_dispatch:
-    types: [greeter-git, greeter-release, suite-release]
+    types: [greeter-git, greeter-release, suite-release, qt-base-release]
 
 # One planner at a time; Launchpad rejects duplicate versions.
 concurrency:
@@ -91,10 +91,11 @@ jobs:
           REBUILD_RELEASE="${{ github.event.inputs.rebuild_release }}"
 
           if [[ "$EVENT_NAME" == "repository_dispatch" ]]; then
-            # Narrow a greeter dispatch to the package that changed
+            # Narrow a single-repo dispatch to the package that changed
             case "$DISPATCH_TYPE" in
               greeter-git) PACKAGE="dux-greeter-git" ;;
               greeter-release) PACKAGE="dux-greeter" ;;
+              qt-base-release) PACKAGE="dux-qt-base" ;;
               suite-release) PACKAGE="auto" ;;
               *) echo "Unknown repository_dispatch type: $DISPATCH_TYPE" >&2; exit 1 ;;
             esac
