@@ -4,7 +4,7 @@
 # source tarball (create_wrksrc=yes) and patches version/checksum/distfiles.
 pkgname=dux-greeter-git
 version=1.0.0.git
-revision=2
+revision=3
 create_wrksrc=yes
 build_wrksrc="core"
 build_style=go
