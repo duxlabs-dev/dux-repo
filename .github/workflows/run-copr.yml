@@ -201,7 +201,15 @@ jobs:
 
           🤖 Automated by GitHub Actions"
 
-          git push
+          # --autostash: this run rewrites the tracked update-log.txt
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME"; then
+              exit 0
+            fi
+            echo "push attempt $attempt failed, retrying"
+            sleep 5
+          done
+          exit 1
 
       - name: Create update summary
         if: steps.update.outputs.has_changes == 'true'
