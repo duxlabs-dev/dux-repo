@@ -95,7 +95,8 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          dnf install -y jq curl git rpmdevtools wget
+          # A bad Fedora mirror fails the metadata download; retry picks another
+          for i in 1 2 3; do dnf install -y jq curl git rpmdevtools wget && break; [ "$i" = 3 ] && exit 1; sleep 15; done
           wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           chmod +x /usr/local/bin/yq
 

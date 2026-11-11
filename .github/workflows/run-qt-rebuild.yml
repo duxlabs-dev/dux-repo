@@ -23,7 +23,9 @@ jobs:
 
     steps:
       - name: Install dependencies
-        run: dnf install -y git jq curl rpmdevtools copr-cli
+        run: |
+          # A bad Fedora mirror fails the metadata download; retry picks another
+          for i in 1 2 3; do dnf install -y git jq curl rpmdevtools copr-cli && break; [ "$i" = 3 ] && exit 1; sleep 15; done
 
       - name: Checkout repository
         uses: actions/checkout@v6
