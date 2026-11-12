@@ -1,14 +1,14 @@
 # dux-qt-base git snapshots (Fedora/Copr). Conflicts with stable, never Obsoletes dux-qt-base.
 # %%global commit/commits/snapdate/tag are rewritten by copr-update.sh; tag is one patch above the latest stable release.
 
-%global commit      c15e6fcff77f065e10a6f8dde99b47826dcd667a
-%global commits     939
-%global snapdate    20261111
-%global tag         0.4.2
+%global commit      53c28300add0c28df0d4c765a6c70263d8c02b63
+%global commits     941
+%global snapdate    20261112
+%global tag         0.4.3
 
 Name:           dux-qt-base-git
 Version:        %{tag}^%{commits}.git%(c=%{commit}; echo ${c:0:7})
-Release:        2%{?dist}
+Release:        1%{?dist}
 Summary:        Quickshell QML runtime as a shared library with a C entry point (git)
 
 License:        LGPL-3.0-only
@@ -96,6 +96,9 @@ use `#cgo pkg-config: dux-qt-base`.
 %{_libdir}/pkgconfig/dux-qt-base.pc
 
 %changelog
+* Thu Nov 12 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 0.4.3^941.git53c2830-1
+- update to 0.4.3^941.git53c2830
+
 * Thu Nov 12 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 0.4.2^939.gitc15e6fc-2
 - rebuild for qt6-qtdeclarative-6.11.2-3.fc45 (f45)
 
