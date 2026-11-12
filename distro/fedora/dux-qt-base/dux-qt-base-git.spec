@@ -8,7 +8,7 @@
 
 Name:           dux-qt-base-git
 Version:        %{tag}^%{commits}.git%(c=%{commit}; echo ${c:0:7})
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Quickshell QML runtime as a shared library with a C entry point (git)
 
 License:        LGPL-3.0-only
@@ -96,6 +96,9 @@ use `#cgo pkg-config: dux-qt-base`.
 %{_libdir}/pkgconfig/dux-qt-base.pc
 
 %changelog
+* Thu Nov 12 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 0.4.2^939.gitc15e6fc-2
+- rebuild for qt6-qtdeclarative-6.11.2-3.fc45 (f45)
+
 * Wed Nov 11 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 0.4.2^939.gitc15e6fc-1
 - update to 0.4.2^939.gitc15e6fc
 
