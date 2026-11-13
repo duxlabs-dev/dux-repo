@@ -1,6 +1,6 @@
 # Template file for 'dux-qt-base'
 pkgname=dux-qt-base
-version=0.4.3
+version=0.4.4
 revision=1
 build_style=cmake
 configure_args="-DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -20,7 +20,7 @@ license="LGPL-3.0-only"
 homepage="https://github.com/duxlabs-dev/dux-qt-base"
 changelog="https://github.com/duxlabs-dev/dux-qt-base/releases"
 distfiles="https://github.com/duxlabs-dev/dux-qt-base/archive/refs/tags/v${version}.tar.gz"
-checksum=e255a9cbe627af7fc433b787d27043384a2d8d80308f28bd0491b114cd255861
+checksum=e29a0960f15e494def64db79cdb1e8a38aa414c86a219836369db5a02e184b21
 
 post_install() {
 	vlicense LICENSE
