@@ -1,4 +1,4 @@
-# dux-qt-base git snapshots (openSUSE/OBS). Conflicts with stable, never Obsoletes dux-qt-base.
+# dux-qt-base git snapshots (openSUSE/OBS). Conflicts with stable dux-qt-base. The Obsoletes below are temporary, to move users off stable onto this package (the -git packages require it); drop them before any stable package requires dux-qt-base.
 # Source tarball and Version are prepared by obs-build-opensuse.sh.
 
 %global sover 0
@@ -58,6 +58,7 @@ Requires:       qt6-wayland
 Recommends:     qt6-svg-imports
 Provides:       libdux-qt-base%{sover} = %{version}-%{release}
 Conflicts:      libdux-qt-base%{sover}
+Obsoletes:      libdux-qt-base%{sover}
 
 %description -n %{libname}
 Quickshell QML runtime, built as libdux-qt-base.so from the master branch.
@@ -70,6 +71,7 @@ Requires:       %{libname} = %{version}-%{release}
 Requires:       pkgconfig
 Provides:       dux-qt-base-devel = %{version}-%{release}
 Conflicts:      dux-qt-base-devel
+Obsoletes:      dux-qt-base-devel
 
 %description    devel
 Header and pkg-config file for linking against libdux-qt-base. Go consumers

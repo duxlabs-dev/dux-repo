@@ -22,7 +22,7 @@ BuildRequires:      git-core
 BuildRequires:      make
 BuildRequires:      systemd-rpm-macros
 
-Requires:          dux-qt-base
+Requires:          dux-qt-base-git
 Requires:          qt6-qtdeclarative
 Recommends:        polkit
 Recommends:        gvfs

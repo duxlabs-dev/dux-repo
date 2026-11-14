@@ -30,7 +30,7 @@ BuildRequires:  systemd-rpm-macros
 
 Requires:       greetd
 Requires(post): greetd
-Requires:       dux-qt-base
+Requires:       dux-qt-base-git
 Requires:       policycoreutils-python-utils
 Requires(pre):  shadow-utils
 Requires(post): shadow-utils

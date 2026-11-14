@@ -21,7 +21,7 @@ BuildRequires:  systemd-rpm-macros
 
 Requires:       greetd
 Requires(post): greetd
-Requires:       libdux-qt-base0
+Requires:       libdux-qt-base0-git
 Requires(pre):  /usr/sbin/useradd
 Requires(pre):  /usr/sbin/groupadd
 

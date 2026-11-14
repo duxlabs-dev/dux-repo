@@ -1,4 +1,4 @@
-# dux-qt-base git snapshots (Fedora/Copr). Conflicts with stable, never Obsoletes dux-qt-base.
+# dux-qt-base git snapshots (Fedora/Copr). Conflicts with stable dux-qt-base. The Obsoletes below are temporary, to move users off stable onto this package (the -git packages require it); drop them before any stable package requires dux-qt-base.
 # %%global commit/commits/snapdate/tag are rewritten by copr-update.sh; tag is one patch above the latest stable release.
 
 %global commit      7734c4cd423ef14eaf23c6f39d6c47480dd4bb5a
@@ -52,6 +52,7 @@ Recommends:     qt6-qtsvg%{?_isa}
 
 Provides:       dux-qt-base = %{version}-%{release}
 Conflicts:      dux-qt-base
+Obsoletes:      dux-qt-base
 
 %description
 Quickshell QML runtime, built as libdux-qt-base.so from the master branch.
@@ -64,6 +65,7 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 Requires:       pkgconfig
 Provides:       dux-qt-base-devel = %{version}-%{release}
 Conflicts:      dux-qt-base-devel
+Obsoletes:      dux-qt-base-devel
 
 %description    devel
 Header and pkg-config file for linking against libdux-qt-base. Go consumers

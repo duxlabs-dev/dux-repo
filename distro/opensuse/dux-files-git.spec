@@ -12,7 +12,7 @@ Source0:        dux-files.tar.gz
 BuildRequires:  make
 BuildRequires:  systemd-rpm-macros
 
-Requires:       libdux-qt-base0
+Requires:       libdux-qt-base0-git
 Requires:       libQt6Quick6
 Recommends:     polkit
 Recommends:     gvfs

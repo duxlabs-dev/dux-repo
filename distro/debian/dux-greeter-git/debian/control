@@ -12,7 +12,7 @@ Package: dux-greeter-git
 Architecture: amd64 arm64
 Depends: ${misc:Depends},
   greetd,
-  libdux-qt-base0
+  libdux-qt-base0-git
 Suggests: niri | hyprland | sway
 Provides: dux-greeter,
           dms-greeter
