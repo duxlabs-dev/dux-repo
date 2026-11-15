@@ -1,10 +1,10 @@
 # dux-qt-base git snapshots (Fedora/Copr). Conflicts with stable dux-qt-base. The Obsoletes below are temporary, to move users off stable onto this package (the -git packages require it); drop them before any stable package requires dux-qt-base.
 # %%global commit/commits/snapdate/tag are rewritten by copr-update.sh; tag is one patch above the latest stable release.
 
-%global commit      7734c4cd423ef14eaf23c6f39d6c47480dd4bb5a
-%global commits     946
-%global snapdate    20261113
-%global tag         0.4.5
+%global commit      eddabb178a910f169f751d68d17957ac13bbc00b
+%global commits     948
+%global snapdate    20261115
+%global tag         0.4.6
 
 Name:           dux-qt-base-git
 Version:        %{tag}^%{commits}.git%(c=%{commit}; echo ${c:0:7})
@@ -98,6 +98,9 @@ use `#cgo pkg-config: dux-qt-base`.
 %{_libdir}/pkgconfig/dux-qt-base.pc
 
 %changelog
+* Sun Nov 15 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 0.4.6^948.giteddabb1-1
+- update to 0.4.6^948.giteddabb1
+
 * Fri Nov 13 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 0.4.5^946.git7734c4c-1
 - update to 0.4.5^946.git7734c4c
 

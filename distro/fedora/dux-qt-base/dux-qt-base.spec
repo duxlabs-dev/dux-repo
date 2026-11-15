@@ -1,5 +1,5 @@
 Name:           dux-qt-base
-Version:        0.4.4
+Version:        0.4.5
 Release:        1%{?dist}
 Summary:        Quickshell QML runtime as a shared library with a C entry point
 
@@ -86,6 +86,9 @@ use `#cgo pkg-config: dux-qt-base`.
 %{_libdir}/pkgconfig/dux-qt-base.pc
 
 %changelog
+* Sun Nov 15 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 0.4.5-1
+- update to 0.4.5
+
 * Fri Nov 13 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 0.4.4-1
 - update to 0.4.4
 
