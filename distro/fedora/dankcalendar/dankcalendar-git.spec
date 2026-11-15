@@ -1,11 +1,11 @@
 %global debug_package %{nil}
 
-%global commit      4b99c726736edc7a1f3b426decfede7faa72746c
-%global commits     308
+%global commit      e17333c58fedb05b4a43c5b956af5575fee0d91a
+%global commits     309
 %global snapdate    20261115
 %global tag         2.1.3
 # dux-qml-common submodule commit for %%{commit} (GitHub archives ship submodules empty)
-%global common_commit de654475cc559fa976a8c205ff373d1882898d67
+%global common_commit 1c9bb8d3e3dd8136d4914962d9935c115b0c922a
 
 Name:               dankcalendar-git
 Version:            %{tag}+git%{commits}.%(c=%{commit}; echo ${c:0:8})
