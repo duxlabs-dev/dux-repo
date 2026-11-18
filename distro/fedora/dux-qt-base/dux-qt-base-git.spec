@@ -90,6 +90,7 @@ use `#cgo pkg-config: dux-qt-base`.
 %doc README.md UPSTREAM.md
 %{_libdir}/libdux-qt-base.so.0
 %{_libdir}/libdux-qt-base.so.0.*
+%{_datadir}/dux-qt-base/
 
 %files devel
 %doc BUILD.md

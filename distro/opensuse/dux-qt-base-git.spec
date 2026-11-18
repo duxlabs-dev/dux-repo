@@ -101,6 +101,7 @@ DESTDIR=%{buildroot} cmake --install build
 %doc README.md UPSTREAM.md
 %{_libdir}/libdux-qt-base.so.%{sover}
 %{_libdir}/libdux-qt-base.so.%{sover}.*
+%{_datadir}/dux-qt-base/
 
 %files devel
 %doc BUILD.md
