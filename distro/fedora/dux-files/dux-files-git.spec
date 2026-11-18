@@ -1,11 +1,11 @@
 %global debug_package %{nil}
 
-%global commit      1ece07c601b7154350936a16a7d5317571813e6d
-%global commits     190
+%global commit      a4baaaf5092e0257aa4aedfd8a6908a080b40997
+%global commits     191
 %global snapdate    20261118
 %global tag         2.1.3
 # dux-qml-common submodule commit for %%{commit} (GitHub archives ship submodules empty)
-%global common_commit 18360bc9ffbe73f376eaca40e5e294f87f6a8106
+%global common_commit 30fd6ce3ca3479c60874f61bdf142315f6efce99
 
 Name:               dux-files-git
 Version:            %{tag}+git%{commits}.%(c=%{commit}; echo ${c:0:8})
