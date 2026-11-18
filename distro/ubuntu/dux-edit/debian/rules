@@ -1,0 +1,48 @@
+#!/usr/bin/make -f
+
+DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+# Both binaries ship in the source package; ppa-upload.sh downloads them (Launchpad has no network)
+ifeq ($(DEB_HOST_ARCH),amd64)
+    BINARY_FILE := dux-edit-amd64
+else ifeq ($(DEB_HOST_ARCH),arm64)
+    BINARY_FILE := dux-edit-arm64
+else
+    $(error Unsupported architecture: $(DEB_HOST_ARCH))
+endif
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	test -f $(BINARY_FILE) || (echo "ERROR: $(BINARY_FILE) not found!" && exit 1)
+	chmod +x $(BINARY_FILE)
+	mkdir -p completions
+	./$(BINARY_FILE) completion bash > completions/dux-edit
+	./$(BINARY_FILE) completion zsh > completions/_dux-edit
+	./$(BINARY_FILE) completion fish > completions/dux-edit.fish
+
+override_dh_auto_install:
+	install -Dm755 $(BINARY_FILE) debian/dux-edit/usr/bin/dux-edit
+	ln -sf dux-edit debian/dux-edit/usr/bin/dedit
+	install -Dm644 assets/dev.duxlabs.edit.desktop \
+		debian/dux-edit/usr/share/applications/dev.duxlabs.edit.desktop
+	install -Dm644 assets/dev.duxlabs.edit.svg \
+		debian/dux-edit/usr/share/icons/hicolor/scalable/apps/dev.duxlabs.edit.svg
+	install -Dm644 assets/dev.duxlabs.edit.metainfo.xml \
+		debian/dux-edit/usr/share/metainfo/dev.duxlabs.edit.metainfo.xml
+	install -Dm644 assets/dev.duxlabs.edit.policy \
+		debian/dux-edit/usr/share/polkit-1/actions/dev.duxlabs.edit.policy
+	install -Dm644 completions/dux-edit \
+		debian/dux-edit/usr/share/bash-completion/completions/dux-edit
+	install -Dm644 completions/_dux-edit \
+		debian/dux-edit/usr/share/zsh/site-functions/_dux-edit
+	install -Dm644 completions/dux-edit.fish \
+		debian/dux-edit/usr/share/fish/vendor_completions.d/dux-edit.fish
+
+override_dh_auto_test:
+	# Skip tests for binary release packages
+
+override_dh_auto_clean:
+	rm -rf completions
+	dh_auto_clean

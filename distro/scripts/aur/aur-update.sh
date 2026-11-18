@@ -22,6 +22,7 @@ GITHUB_OUTPUT="${GITHUB_OUTPUT:-/dev/null}"
 # name:repo:kind (release: pkgver follows GitHub releases; git: manual pkgrel only)
 PACKAGES=(
     "dux-calendar-bin:duxlabs-dev/dux-calendar:release"
+    "dux-edit-bin:duxlabs-dev/dux-edit:release"
     "dux-files-bin:duxlabs-dev/dux-files:release"
     "dux-greeter-bin:duxlabs-dev/dux-greeter:release"
     "dux-search-bin:duxlabs-dev/dux-search:release"
@@ -29,6 +30,7 @@ PACKAGES=(
     "dux-qt-base-bin:duxlabs-dev/dux-qt-base:release"
     "dux-shell-git:duxlabs-dev/dux-shell:git"
     "dux-calendar-git:duxlabs-dev/dux-calendar:git"
+    "dux-edit-git:duxlabs-dev/dux-edit:git"
     "dux-files-git:duxlabs-dev/dux-files:git"
     "dux-greeter-git:duxlabs-dev/dux-greeter:git"
     "dux-search-git:duxlabs-dev/dux-search:git"

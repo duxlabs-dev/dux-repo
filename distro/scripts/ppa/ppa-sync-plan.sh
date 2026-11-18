@@ -28,6 +28,8 @@ PACKAGES=(
     "dux-calendar-git:duxlabs-dev/dux-calendar:git"
     "dux-files:duxlabs-dev/dux-files:release"
     "dux-files-git:duxlabs-dev/dux-files:git"
+    "dux-edit:duxlabs-dev/dux-edit:release"
+    "dux-edit-git:duxlabs-dev/dux-edit:git"
     "dux-search:duxlabs-dev/dux-search:release"
     "dux-gop:duxlabs-dev/dux-gop:release"
     "dux-greeter:duxlabs-dev/dux-greeter:release"
@@ -235,7 +237,7 @@ include_package() {
 TARGETS=()
 
 # 2.2-era packages with no legacy twin, and git snapshots that need dux-qt-base; the legacy owner never gets them
-DUXLABS_ONLY=(dux-qt-base dux-qt-base-git dux-files-git dux-calendar-git dux-greeter-git)
+DUXLABS_ONLY=(dux-qt-base dux-qt-base-git dux-files-git dux-edit dux-edit-git dux-calendar-git dux-greeter-git)
 
 duxlabs_only() {
     local name="$1" p

@@ -133,8 +133,8 @@ Same source, incremented `.db` suffix. Use for packaging fixes, dependency updat
 
 ## Packages
 
-**Stable:** dux-calendar, dux-files, dux-gop, dux-greeter, dux-qt-base, dux-search, ghostty, matugen, niri (Debian), quickshell, xwayland-satellite
-**Git:** dux-calendar-git, dux-files-git, dux-greeter-git, dux-qt-base-git, niri-git, quickshell-git, xwayland-satellite-git
+**Stable:** dux-calendar, dux-edit, dux-files, dux-gop, dux-greeter, dux-qt-base, dux-search, ghostty, matugen, niri (Debian), quickshell, xwayland-satellite
+**Git:** dux-calendar-git, dux-edit-git, dux-files-git, dux-greeter-git, dux-qt-base-git, niri-git, quickshell-git, xwayland-satellite-git
 **Snapshot (stable):** quickshell (stable) uses [snapshots.yaml](../../snapshots.yaml) to track the upstream commit until a newer release than `base_version` appears.
 
 ## Testing
@@ -170,7 +170,7 @@ Project config in `distro/obs-project.conf` fixes dependency conflicts. Apply ch
 
 - `GITHUB_TOKEN` - GitHub API (rate limit)
 - `OBS_USERNAME`, `OBS_PASSWORD` - OBS auth
-- `OBS_PROJECT` - Project name (default: `home:AvengeMedia:danklinux`); `home:duxlabs-dev:*` selects the duxlabs owner
+- `OBS_PROJECT` - Project name (default: `home:duxlabs-dev:dux-repo`); `home:duxlabs-dev:*` selects the duxlabs owner, any other project the legacy avengemedia owner
 - `OBS_OWNER` - Optional; must match the owner `OBS_PROJECT` implies
 - `DEBUG` - Debug logging
 

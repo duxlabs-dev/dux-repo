@@ -1,0 +1,53 @@
+#!/usr/bin/make -f
+
+DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+ifeq ($(DEB_HOST_ARCH),amd64)
+    BINARY_FILE := dux-edit-linux-amd64.gz
+else ifeq ($(DEB_HOST_ARCH),arm64)
+    BINARY_FILE := dux-edit-linux-arm64.gz
+else
+    $(error Unsupported architecture: $(DEB_HOST_ARCH))
+endif
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	if [ -f $(BINARY_FILE) ]; then \
+		gunzip -c $(BINARY_FILE) > dux-edit; \
+	elif [ -f ../SOURCES/$(BINARY_FILE) ]; then \
+		gunzip -c ../SOURCES/$(BINARY_FILE) > dux-edit; \
+	else \
+		echo "ERROR: $(BINARY_FILE) not found!" && exit 1; \
+	fi; \
+	chmod +x dux-edit
+	mkdir -p completions
+	./dux-edit completion bash > completions/dux-edit
+	./dux-edit completion zsh > completions/_dux-edit
+	./dux-edit completion fish > completions/dux-edit.fish
+
+override_dh_auto_install:
+	install -Dm755 dux-edit debian/dux-edit/usr/bin/dux-edit
+	ln -sf dux-edit debian/dux-edit/usr/bin/dedit
+	install -Dm644 assets/dev.duxlabs.edit.desktop \
+		debian/dux-edit/usr/share/applications/dev.duxlabs.edit.desktop
+	install -Dm644 assets/dev.duxlabs.edit.svg \
+		debian/dux-edit/usr/share/icons/hicolor/scalable/apps/dev.duxlabs.edit.svg
+	install -Dm644 assets/dev.duxlabs.edit.metainfo.xml \
+		debian/dux-edit/usr/share/metainfo/dev.duxlabs.edit.metainfo.xml
+	install -Dm644 assets/dev.duxlabs.edit.policy \
+		debian/dux-edit/usr/share/polkit-1/actions/dev.duxlabs.edit.policy
+	install -Dm644 completions/dux-edit \
+		debian/dux-edit/usr/share/bash-completion/completions/dux-edit
+	install -Dm644 completions/_dux-edit \
+		debian/dux-edit/usr/share/zsh/site-functions/_dux-edit
+	install -Dm644 completions/dux-edit.fish \
+		debian/dux-edit/usr/share/fish/vendor_completions.d/dux-edit.fish
+
+override_dh_auto_test:
+	# Skip tests for binary release packages
+
+override_dh_auto_clean:
+	rm -rf dux-edit completions
+	dh_auto_clean

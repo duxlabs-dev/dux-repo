@@ -34,6 +34,8 @@
 - **dux-calendar-git** - Dux Calendar built from upstream master
 - **dux-files** - File manager with tabs, split panes, network shares and a portal file chooser (`dfiles`)
 - **dux-files-git** - Dux Files built from upstream master
+- **dux-edit** - Text and document editor with tabs, crash recovery, syntax highlighting and Markdown preview (`dux-edit`, `dedit`)
+- **dux-edit-git** - Dux Edit built from upstream master
 - **dux-gop** - System package manager integration tool (`dgop`)
 - **dux-greeter** / **dux-greeter-git** - greetd greeter (`dms-greeter`)
 

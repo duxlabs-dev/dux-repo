@@ -148,6 +148,23 @@ packages:
       directory_name: "dux-files-{version}"
       compression: gz
 
+  dux-edit:
+    owners: [duxlabs]
+    type: stable
+    upstream:
+      repo: duxlabs-dev/dux-edit
+      source_type: github_release
+    distros:
+      - debian
+      - opensuse
+    build:
+      language: go
+      binary_release: true
+      binary_template: "dux-edit-linux-{arch}.gz"
+    tarball:
+      directory_name: "dux-edit-{version}"
+      compression: gz
+
   dux-greeter:
     owners: [duxlabs]
     replaces: dms-greeter
@@ -387,6 +404,28 @@ packages:
       directory_name: "dux-files"
       compression: gz
 
+  dux-edit-git:
+    owners: [duxlabs]
+    type: git
+    upstream:
+      repo: duxlabs-dev/dux-edit
+      branch: master
+    base_version:
+      from_stable: dux-edit
+      # No dux-edit release yet; bumped one patch ahead like dux-files-git (0.0.1+gitN)
+      fallback: "0.0.0"
+    distros:
+      - debian
+      - opensuse
+    build:
+      language: go
+      go_version: "1.27"
+      vendor_deps: true
+      bundle_go_toolchain: true
+    tarball:
+      directory_name: "dux-edit"
+      compression: gz
+
   dux-greeter-git:
     owners: [duxlabs]
     replaces: dms-greeter-git
@@ -619,6 +658,7 @@ groups:
     - dux-search
     - dux-calendar
     - dux-files
+    - dux-edit
     - dux-greeter
     - dux-gop
     - ghostty
@@ -637,12 +677,14 @@ groups:
     - xwayland-satellite-git
     - dux-calendar-git
     - dux-files-git
+    - dux-edit-git
     - dux-greeter-git
 
   all:
     - dux-search
     - dux-calendar
     - dux-files
+    - dux-edit
     - dux-greeter
     - dux-gop
     - ghostty
@@ -659,6 +701,7 @@ groups:
     - xwayland-satellite-git
     - dux-calendar-git
     - dux-files-git
+    - dux-edit-git
     - dux-greeter-git
 
   debian-only:
@@ -681,9 +724,11 @@ groups:
     - dux-search
     - dux-calendar
     - dux-files
+    - dux-edit
     - dux-gop
     - dux-calendar-git
     - dux-files-git
+    - dux-edit-git
     - dux-greeter
     - dux-greeter-git
 
@@ -699,5 +744,6 @@ groups:
     - dux-search
     - dux-calendar
     - dux-files
+    - dux-edit
     - dux-greeter
     - dux-gop

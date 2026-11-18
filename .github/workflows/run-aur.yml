@@ -14,6 +14,7 @@ on:
         options:
           - all
           - dux-calendar-bin
+          - dux-edit-bin
           - dux-files-bin
           - dux-greeter-bin
           - dux-search-bin
@@ -21,6 +22,7 @@ on:
           - dux-qt-base-bin
           - dux-shell-git
           - dux-calendar-git
+          - dux-edit-git
           - dux-files-git
           - dux-greeter-git
           - dux-search-git

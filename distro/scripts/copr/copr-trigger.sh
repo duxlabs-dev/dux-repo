@@ -67,7 +67,7 @@ declare -A LEGACY_NAME=(
 )
 LEGACY_OWNER=avengemedia
 # 2.2-era packages with no legacy twin, and the git snapshots that need dux-qt-base: the legacy owner never gets them
-DUXLABS_ONLY=(dux-qt-base dux-qt-base-git dux-files-git dankcalendar-git dms-greeter-git)
+DUXLABS_ONLY=(dux-qt-base dux-qt-base-git dux-files-git dux-edit dux-edit-git dankcalendar-git dms-greeter-git)
 
 duxlabs_only() {
     local name="$1" p
@@ -168,6 +168,8 @@ BUILD_DANKCALENDAR=false
 BUILD_DANKCALENDAR_GIT=false
 BUILD_DUX_FILES=false
 BUILD_DUX_FILES_GIT=false
+BUILD_DUX_EDIT=false
+BUILD_DUX_EDIT_GIT=false
 BUILD_DUX_GREETER=false
 BUILD_DUX_GREETER_GIT=false
 BUILD_DMS_GREETER=false
@@ -201,6 +203,8 @@ if [[ "${FORCE_PACKAGE:-}" == "all" ]]; then
     BUILD_DANKCALENDAR_GIT=true
     BUILD_DUX_FILES=true
     BUILD_DUX_FILES_GIT=true
+    BUILD_DUX_EDIT=true
+    BUILD_DUX_EDIT_GIT=true
     BUILD_DUX_GREETER=true
     BUILD_DUX_GREETER_GIT=true
     BUILD_DMS_GREETER=true
@@ -287,6 +291,15 @@ if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-files/dux-files-git.spec";
     BUILD_DUX_FILES_GIT=true
 fi
 
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-edit/dux-edit.spec"; then
+    BUILD_DUX_EDIT=true
+fi
+
+# Not the stable build too: it fails until dux-edit has a release
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-edit/dux-edit-git.spec"; then
+    BUILD_DUX_EDIT_GIT=true
+fi
+
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-greeter/dux-greeter.spec"; then
     BUILD_DUX_GREETER=true
 fi
@@ -354,6 +367,8 @@ if [[ -z "$CHANGED_FILES" ]]; then
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-calendar/dux-calendar-git.spec" && BUILD_DUX_CALENDAR_GIT=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-files/dux-files.spec" && BUILD_DUX_FILES=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-files/dux-files-git.spec" && BUILD_DUX_FILES_GIT=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-edit/dux-edit.spec" && BUILD_DUX_EDIT=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-edit/dux-edit-git.spec" && BUILD_DUX_EDIT_GIT=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-greeter/dux-greeter.spec" && BUILD_DUX_GREETER=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-greeter/dux-greeter-git.spec" && BUILD_DUX_GREETER_GIT=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dgop/dgop.spec" && BUILD_DGOP=true
@@ -444,6 +459,22 @@ fi
 
 if [[ "$BUILD_DUX_FILES_GIT" == true ]] || [[ "$FORCE_PACKAGE" == "dux-files-git" ]]; then
     trigger_build "dux-files-git" "distro/fedora/dux-files/dux-files-git.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
+# Source0 is the release tarball: skip, not fail, until upstream publishes v<Version> (no dux-edit release yet)
+if [[ "$BUILD_DUX_EDIT" == true ]] || [[ "$FORCE_PACKAGE" == "dux-edit" ]]; then
+    DUX_EDIT_VERSION=$(grep -oP '^Version:\s+\K[0-9.]+' distro/fedora/dux-edit/dux-edit.spec || echo "")
+    if [[ -n "$DUX_EDIT_VERSION" ]] && curl -sfIL -o /dev/null \
+        "https://github.com/duxlabs-dev/dux-edit/releases/download/v${DUX_EDIT_VERSION}/dux-edit-${DUX_EDIT_VERSION}.tar.gz"; then
+        trigger_build "dux-edit" "distro/fedora/dux-edit/dux-edit.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+    else
+        echo "⏭️  Skipping dux-edit: no upstream release tarball for v${DUX_EDIT_VERSION:-?} yet"
+        BUILDS_SKIPPED=$((BUILDS_SKIPPED + 1))
+    fi
+fi
+
+if [[ "$BUILD_DUX_EDIT_GIT" == true ]] || [[ "$FORCE_PACKAGE" == "dux-edit-git" ]]; then
+    trigger_build "dux-edit-git" "distro/fedora/dux-edit/dux-edit-git.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
 fi
 
 if [[ "$BUILD_DUX_GREETER" == true ]] || [[ "$FORCE_PACKAGE" == "dux-greeter" ]]; then

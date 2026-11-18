@@ -1,0 +1,30 @@
+Source: dux-edit-git
+Section: editors
+Priority: optional
+Maintainer: Avenge Media <AvengeMedia.US@gmail.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Homepage: https://github.com/duxlabs-dev/dux-edit
+Vcs-Browser: https://github.com/duxlabs-dev/dux-edit
+Vcs-Git: https://github.com/duxlabs-dev/dux-edit.git
+
+Package: dux-edit-git
+Architecture: any
+Depends: ${misc:Depends},
+         libdux-qt-base0-git,
+         libqt6quick6
+Recommends: polkitd,
+            pkexec,
+            hunspell,
+            hunspell-en-us
+Conflicts: dux-edit
+Replaces: dux-edit
+Provides: dedit
+Description: Text and document editor for the Dux Labs desktop (git)
+ Dux Edit is a text and document editor for Wayland that sits between a
+ scratchpad and an IDE: tabs, drafts that survive a restart, crash recovery,
+ syntax highlighting colored from the desktop theme, Markdown preview,
+ spellcheck and saving root-owned files through polkit. A Go core does the
+ document work and carries its own QML UI, run on dux-qt-base.
+ .
+ This is the git development package built from upstream master.

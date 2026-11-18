@@ -39,7 +39,7 @@ TEMP_DIR=""
 readonly CACHE_DIR="$HOME/.cache/obs-automation"
 readonly CACHE_TTL=900  # 15 minutes
 
-OBS_PROJECT="${OBS_PROJECT:-home:AvengeMedia:danklinux}"
+OBS_PROJECT="${OBS_PROJECT:-home:duxlabs-dev:dux-repo}"
 if [[ "$OBS_PROJECT" == home:duxlabs-dev:* ]]; then
     _OBS_PROJECT_OWNER=duxlabs
 else

@@ -67,7 +67,7 @@ fi
 TEMP_DIR=$(mktemp -d "$TEMP_BASE/ppa_build_XXXXXX")
 trap "rm -rf $TEMP_DIR" EXIT
 
-AVAILABLE_PACKAGES=(cpptrace dux-search dux-gop ghostty matugen niri niri-git quickshell quickshell-git dux-qt-base dux-qt-base-git xwayland-satellite xwayland-satellite-git dux-calendar dux-calendar-git dux-files dux-files-git dux-greeter dux-greeter-git)
+AVAILABLE_PACKAGES=(cpptrace dux-search dux-gop ghostty matugen niri niri-git quickshell quickshell-git dux-qt-base dux-qt-base-git xwayland-satellite xwayland-satellite-git dux-calendar dux-calendar-git dux-files dux-files-git dux-edit dux-edit-git dux-greeter dux-greeter-git)
 declare -A RENAMED_TO=(
     [danksearch]=dux-search
     [dgop]=dux-gop
@@ -222,7 +222,7 @@ done
 
 # 2.2-era packages with no legacy twin, and git snapshots that need dux-qt-base; the legacy owner never gets them
 case "$PACKAGE" in
-    dux-qt-base|dux-qt-base-git|dux-files-git|dux-calendar-git|dux-greeter-git|dankcalendar-git|dms-greeter-git)
+    dux-qt-base|dux-qt-base-git|dux-files-git|dux-edit|dux-edit-git|dux-calendar-git|dux-greeter-git|dankcalendar-git|dms-greeter-git)
         if [[ "$PPA_OWNER" == "avengemedia" ]]; then
             info "$PACKAGE is not published to ppa:${PPA_OWNER}, nothing to do"
             exit 0
@@ -420,6 +420,25 @@ fi
 
 success "GPG key found"
 
+# Sign as the PPA owner: Launchpad silently drops uploads signed by a key whose
+# account cannot upload to the PPA (gpg's default key is the legacy one locally).
+# CI sets DEBSIGN_KEYID from the imported secret key.
+if [[ -z "${DEBSIGN_KEYID:-}" ]]; then
+    case "$PPA_OWNER" in
+        duxlabs) SIGNER_UID="Dux Labs" ;;
+        avengemedia) SIGNER_UID="Avenge Media" ;;
+        *) SIGNER_UID="" ;;
+    esac
+    if [[ -n "$SIGNER_UID" ]]; then
+        DEBSIGN_KEYID=$(gpg --list-secret-keys --with-colons "$SIGNER_UID" 2>/dev/null | awk -F: '/^fpr/{print $10; exit}')
+        if [[ -z "$DEBSIGN_KEYID" ]]; then
+            error "No GPG secret key for '$SIGNER_UID' (needed to upload to ppa:${PPA_OWNER}); set DEBSIGN_KEYID"
+            exit 1
+        fi
+        info "Signing as '$SIGNER_UID' ($DEBSIGN_KEYID)"
+    fi
+fi
+
 if ! command -v debuild &> /dev/null; then
     error "debuild not found. Install devscripts:"
     error "  sudo dnf install devscripts"
@@ -559,6 +578,15 @@ case "$PACKAGE_KIND" in
         IS_GIT_PACKAGE=true
         GIT_REPO="duxlabs-dev/dux-files"
         SOURCE_DIR="dux-files"
+        ;;
+    dux-edit)
+        # dux-edit uses pre-built binary releases
+        GIT_REPO="duxlabs-dev/dux-edit"
+        ;;
+    dux-edit-git)
+        IS_GIT_PACKAGE=true
+        GIT_REPO="duxlabs-dev/dux-edit"
+        SOURCE_DIR="dux-edit"
         ;;
     dux-greeter)
         GIT_REPO="duxlabs-dev/dux-greeter"
@@ -726,6 +754,12 @@ if [ "$IS_GIT_PACKAGE" = true ] && [ -n "$GIT_REPO" ]; then
             UPSTREAM_VERSION="$(bump_patch_triplet "$UPSTREAM_VERSION")"
             info "dux-files-git Debian base ahead of stable tag (${_DF_PRE} → ${UPSTREAM_VERSION})"
         fi
+
+        if [ "$PACKAGE_NAME" = "dux-edit-git" ]; then
+            _DE_PRE="$UPSTREAM_VERSION"
+            UPSTREAM_VERSION="$(bump_patch_triplet "$UPSTREAM_VERSION")"
+            info "dux-edit-git Debian base ahead of stable tag (${_DE_PRE} → ${UPSTREAM_VERSION})"
+        fi
         
         info "Updating changelog with git commit info..."
         BASE_VERSION="${DEB_EPOCH}${UPSTREAM_VERSION}+git${GIT_COMMIT_COUNT}.${GIT_COMMIT_HASH}"
@@ -783,7 +817,7 @@ if [ "$IS_GIT_PACKAGE" = true ] && [ -n "$GIT_REPO" ]; then
         success "Changelog written back to $PACKAGE_DIR/debian/changelog"
         
         rm -rf "$SOURCE_DIR"
-        if [ "$PACKAGE_KIND" = "dux-calendar-git" ] || [ "$PACKAGE_KIND" = "dux-files-git" ] || [ "$PACKAGE_KIND" = "dux-qt-base-git" ]; then
+        if [ "$PACKAGE_KIND" = "dux-calendar-git" ] || [ "$PACKAGE_KIND" = "dux-files-git" ] || [ "$PACKAGE_KIND" = "dux-edit-git" ] || [ "$PACKAGE_KIND" = "dux-qt-base-git" ]; then
             # Native rules expect the upstream tree at package root (same as OBS)
             cp -a "$TEMP_CLONE"/. "$BUILD_DIR/"
             rm -rf "$BUILD_DIR/.git"
@@ -833,7 +867,7 @@ if [ "$IS_GIT_PACKAGE" = true ] && [ -n "$GIT_REPO" ]; then
             fi
         fi
 
-        if [ "$PACKAGE_KIND" = "dux-calendar-git" ] || [ "$PACKAGE_KIND" = "dux-files-git" ] || [ "$PACKAGE_KIND" = "dux-greeter-git" ]; then
+        if [ "$PACKAGE_KIND" = "dux-calendar-git" ] || [ "$PACKAGE_KIND" = "dux-files-git" ] || [ "$PACKAGE_KIND" = "dux-edit-git" ] || [ "$PACKAGE_KIND" = "dux-greeter-git" ]; then
             if [ -f "$SOURCE_DIR/core/go.mod" ]; then
                 info "Vendoring Go dependencies (Launchpad has no internet access)..."
                 cd "$SOURCE_DIR/core"
@@ -1175,6 +1209,38 @@ case "$PACKAGE_KIND" in
                 "dfiles-${VERSION}/assets" \
                 "dfiles-${VERSION}/LICENSE"
             rm -f dfiles-src.tar.gz
+            success "Assets extracted"
+        fi
+        ;;
+    dux-edit)
+        info "Downloading pre-built binaries and assets for dux-edit..."
+        VERSION=$(dpkg-parsechangelog -S Version | sed 's/-[^-]*$//' | sed 's/ppa[0-9]*$//')
+        RELEASE_URL="https://github.com/duxlabs-dev/dux-edit/releases/download/v${VERSION}"
+
+        for arch in amd64 arm64; do
+            if [ ! -f "dux-edit-${arch}" ]; then
+                info "Downloading dux-edit binary for ${arch}..."
+                if ! wget -O "dux-edit-${arch}.gz" "${RELEASE_URL}/dux-edit-linux-${arch}.gz"; then
+                    error "Failed to download dux-edit-linux-${arch}.gz"
+                    exit 1
+                fi
+                gunzip "dux-edit-${arch}.gz"
+                chmod +x "dux-edit-${arch}"
+                success "${arch} binary downloaded"
+            fi
+        done
+
+        # Desktop, metainfo and polkit files and the license come from the release source tarball
+        if [ ! -d "assets" ]; then
+            info "Extracting assets from dux-edit-${VERSION}.tar.gz..."
+            if ! wget -O dux-edit-src.tar.gz "${RELEASE_URL}/dux-edit-${VERSION}.tar.gz"; then
+                error "Failed to download dux-edit-${VERSION}.tar.gz"
+                exit 1
+            fi
+            tar -xzf dux-edit-src.tar.gz --strip-components=1 \
+                "dux-edit-${VERSION}/assets" \
+                "dux-edit-${VERSION}/LICENSE"
+            rm -f dux-edit-src.tar.gz
             success "Assets extracted"
         fi
         ;;

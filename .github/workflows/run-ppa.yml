@@ -12,6 +12,8 @@ on:
           - all
           - dux-calendar
           - dux-calendar-git
+          - dux-edit
+          - dux-edit-git
           - dux-files
           - dux-files-git
           - dux-gop

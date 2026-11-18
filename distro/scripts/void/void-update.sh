@@ -18,6 +18,7 @@ TEMPLATES=(
     "srcpkgs/dux-search:duxlabs-dev/dux-search"
     "srcpkgs/dux-calendar:duxlabs-dev/dux-calendar"
     "srcpkgs/dux-files:duxlabs-dev/dux-files"
+    "srcpkgs/dux-edit:duxlabs-dev/dux-edit"
     "srcpkgs/dux-qt-base:duxlabs-dev/dux-qt-base"
     "srcpkgs/dgop:duxlabs-dev/dux-gop"
     "srcpkgs/danksearch:duxlabs-dev/dux-search"

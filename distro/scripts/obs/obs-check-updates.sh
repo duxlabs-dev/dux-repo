@@ -243,6 +243,12 @@ EOF
             log_info "  dux-files-git OBS base ahead of stable tag (${_df_base_prev} → ${base_version})"
         fi
 
+        if [[ "$package" == "dux-edit-git" && -n "$base_version" ]]; then
+            local _de_base_prev="$base_version"
+            base_version=$(bump_patch_triplet "$base_version")
+            log_info "  dux-edit-git OBS base ahead of stable tag (${_de_base_prev} → ${base_version})"
+        fi
+
         # Build git version string (without .db suffix - only add that when building)
         upstream_version="${base_version}+git${commit_count}.${upstream_commit}"
         log_info "  Upstream version: $upstream_version"
