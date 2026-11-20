@@ -1,7 +1,11 @@
 <!-- Keep repositories in sync with obs-project-meta.xml -->
 <project name="home:duxlabs-dev:dux-repo">
   <title>Dux Labs Repository</title>
-  <description>The Dux Labs Repository can be used to install standalone packages or core dependencies for the Dux Shell desktop environment like dux-gop, dux-search, ghostty, matugen, niri, xwayland-satellite and quickshell. 
+  <description>Apps, the Qt runtime and dependencies for the Dux Modular Shell (DMS) desktop. Every package also installs on its own.
+
+Dux Labs: dux-calendar, dux-files, dux-edit, dux-search, dux-greeter, dux-icons, dux-gop and the dux-qt-base runtime, with -git builds from upstream master for dux-calendar, dux-files, dux-edit, dux-greeter and dux-qt-base.
+
+Also: ghostty, matugen, niri, quickshell and xwayland-satellite, with -git builds of niri, quickshell and xwayland-satellite.
 
 https://github.com/duxlabs-dev/dux-repo</description>
   <url>https://duxlabs.dev/docs/packaging/</url>
