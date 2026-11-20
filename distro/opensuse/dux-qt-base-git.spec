@@ -3,6 +3,7 @@
 
 %global sover 0
 %global libname libdux-qt-base%{sover}-git
+%global __requires_exclude_from ^%{_datadir}/dux-qt-base/qml/.*$
 
 Name:           dux-qt-base-git
 Version:        0.3.2+git913.032cf5ee
