@@ -1,0 +1,35 @@
+# Template file for 'dux-icons'
+#
+# Icon theme generator for the Dux Labs desktop: a standard-library Python
+# script that DMS runs to rebuild the theme from the current Material colors.
+pkgname=dux-icons
+version=0.1.3
+revision=1
+build_style=gnu-makefile
+make_install_args="PREFIX=/usr"
+checkdepends="python3"
+depends="python3 hicolor-icon-theme"
+short_desc="Icon theme generator that follows your Material colors"
+maintainer="Dux Labs <DuxLabsDev@gmail.com>"
+license="MIT, Apache-2.0"
+homepage="https://github.com/duxlabs-dev/dux-icons"
+changelog="https://github.com/duxlabs-dev/dux-icons/releases"
+distfiles="https://github.com/duxlabs-dev/dux-icons/archive/v${version}/dux-icons-${version}.tar.gz"
+checksum=072432876c98fbbdb9d9cf7c0ad268b2af31e7201fe9963156779931a4d43095
+wrksrc="dux-icons-${version}"
+
+do_build() {
+	# Nothing to build: the generator is a standard-library Python script
+	:
+}
+
+do_check() {
+	python3 -m unittest
+}
+
+post_install() {
+	vsed -i '1s|^#!/usr/bin/env python3|#!/usr/bin/python3|' \
+		"${DESTDIR}/usr/share/dux-icons/scripts/build.py"
+	vlicense LICENSE
+	vlicense NOTICE
+}

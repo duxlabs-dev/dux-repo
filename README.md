@@ -52,6 +52,7 @@ All channels build for **x86_64** and **aarch64** (openSUSE Slowroll is x86_64 o
 - **dux-edit-git** - Dux Edit built from upstream master
 - **dux-gop** - System package manager integration tool (`dgop`)
 - **dux-greeter** / **dux-greeter-git** - greetd greeter (`dms-greeter`)
+- **dux-icons** - Icon theme generator that recolors app, folder and file type icons from your Material colors (`dux-icons`)
 - **ghostty** - GPU-accelerated terminal emulator
 
 ## Installation

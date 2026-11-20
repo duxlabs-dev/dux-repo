@@ -186,6 +186,22 @@ packages:
       directory_name: "dux-greeter-{version}"
       compression: gz
 
+  dux-icons:
+    owners: [duxlabs]
+    type: stable
+    upstream:
+      repo: duxlabs-dev/dux-icons
+      # Releases carry no assets; the build falls back to the tag's source archive
+      source_type: github_release
+    distros:
+      - debian
+      - opensuse
+    build:
+      language: python
+    tarball:
+      directory_name: "dux-icons-{version}"
+      compression: gz
+
   ghostty:
     type: stable
     upstream:
@@ -659,6 +675,7 @@ groups:
     - dux-calendar
     - dux-files
     - dux-edit
+    - dux-icons
     - dux-greeter
     - dux-gop
     - ghostty
@@ -685,6 +702,7 @@ groups:
     - dux-calendar
     - dux-files
     - dux-edit
+    - dux-icons
     - dux-greeter
     - dux-gop
     - ghostty

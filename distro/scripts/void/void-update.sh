@@ -19,6 +19,7 @@ TEMPLATES=(
     "srcpkgs/dux-calendar:duxlabs-dev/dux-calendar"
     "srcpkgs/dux-files:duxlabs-dev/dux-files"
     "srcpkgs/dux-edit:duxlabs-dev/dux-edit"
+    "srcpkgs/dux-icons:duxlabs-dev/dux-icons"
     "srcpkgs/dux-qt-base:duxlabs-dev/dux-qt-base"
     "srcpkgs/dgop:duxlabs-dev/dux-gop"
     "srcpkgs/danksearch:duxlabs-dev/dux-search"

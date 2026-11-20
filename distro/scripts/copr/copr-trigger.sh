@@ -67,7 +67,7 @@ declare -A LEGACY_NAME=(
 )
 LEGACY_OWNER=avengemedia
 # 2.2-era packages with no legacy twin, and the git snapshots that need dux-qt-base: the legacy owner never gets them
-DUXLABS_ONLY=(dux-qt-base dux-qt-base-git dux-files-git dux-edit dux-edit-git dankcalendar-git dms-greeter-git)
+DUXLABS_ONLY=(dux-qt-base dux-qt-base-git dux-files-git dux-edit dux-edit-git dux-icons dankcalendar-git dms-greeter-git)
 
 duxlabs_only() {
     local name="$1" p
@@ -172,6 +172,7 @@ BUILD_DUX_EDIT=false
 BUILD_DUX_EDIT_GIT=false
 BUILD_DUX_GREETER=false
 BUILD_DUX_GREETER_GIT=false
+BUILD_DUX_ICONS=false
 BUILD_DMS_GREETER=false
 BUILD_DMS_GREETER_GIT=false
 BUILD_CLI11=false
@@ -207,6 +208,7 @@ if [[ "${FORCE_PACKAGE:-}" == "all" ]]; then
     BUILD_DUX_EDIT_GIT=true
     BUILD_DUX_GREETER=true
     BUILD_DUX_GREETER_GIT=true
+    BUILD_DUX_ICONS=true
     BUILD_DMS_GREETER=true
     BUILD_DMS_GREETER_GIT=true
     BUILD_CLI11=true
@@ -309,6 +311,10 @@ if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-greeter/dux-greeter-git.sp
     BUILD_DUX_GREETER_GIT=true
 fi
 
+if echo "$CHANGED_FILES" | grep -q "distro/fedora/dux-icons/dux-icons.spec"; then
+    BUILD_DUX_ICONS=true
+fi
+
 if echo "$CHANGED_FILES" | grep -q "distro/fedora/dms-greeter/dms-greeter.spec"; then
     BUILD_DMS_GREETER=true
 fi
@@ -371,6 +377,7 @@ if [[ -z "$CHANGED_FILES" ]]; then
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-edit/dux-edit-git.spec" && BUILD_DUX_EDIT_GIT=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-greeter/dux-greeter.spec" && BUILD_DUX_GREETER=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-greeter/dux-greeter-git.spec" && BUILD_DUX_GREETER_GIT=true
+    echo "$UNCOMMITTED" | grep -q "distro/fedora/dux-icons/dux-icons.spec" && BUILD_DUX_ICONS=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dgop/dgop.spec" && BUILD_DGOP=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/danksearch/danksearch.spec" && BUILD_DANKSEARCH=true
     echo "$UNCOMMITTED" | grep -q "distro/fedora/dankcalendar/dankcalendar.spec" && BUILD_DANKCALENDAR=true
@@ -483,6 +490,10 @@ fi
 
 if [[ "$BUILD_DUX_GREETER_GIT" == true ]] || [[ "$FORCE_PACKAGE" == "dux-greeter-git" ]]; then
     trigger_build "dux-greeter-git" "distro/fedora/dux-greeter/dux-greeter-git.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
+fi
+
+if [[ "$BUILD_DUX_ICONS" == true ]] || [[ "$FORCE_PACKAGE" == "dux-icons" ]]; then
+    trigger_build "dux-icons" "distro/fedora/dux-icons/dux-icons.spec" && BUILDS_TRIGGERED=$((BUILDS_TRIGGERED + 1))
 fi
 
 if [[ "$BUILD_DMS_GREETER" == true ]] || [[ "$FORCE_PACKAGE" == "dms-greeter" ]]; then

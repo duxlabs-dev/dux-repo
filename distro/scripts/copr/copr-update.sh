@@ -1156,6 +1156,37 @@ else
     echo "   ⚠ Could not fetch latest commit"
 fi
 
+# ============================================================================
+# DUX-ICONS (Stable Release)
+# ============================================================================
+echo ""
+echo "📦 Checking dux-icons..."
+
+SPEC_FILE="dux-icons/dux-icons.spec"
+UPSTREAM_REPO="duxlabs-dev/dux-icons"
+
+CURRENT_VERSION=$(grep -oP '^Version:\s+\K[0-9.]+' "$SPEC_FILE" || echo "unknown")
+echo "   Current: $CURRENT_VERSION"
+
+LATEST_TAG=$("$SCRIPT_DIR/../common/fetch-version.sh" "$UPSTREAM_REPO" "release" 2>/dev/null || echo "")
+LATEST_VERSION="${LATEST_TAG#v}"
+
+if [[ -n "$LATEST_VERSION" ]]; then
+    echo "   Latest:  $LATEST_VERSION"
+
+    if version_is_newer "$LATEST_VERSION" "$CURRENT_VERSION"; then
+        echo "   ✨ Update available: $CURRENT_VERSION → $LATEST_VERSION"
+        sed -i "s/^Version:\s\+.*/Version:            $LATEST_VERSION/" "$SPEC_FILE"
+        reset_release "$SPEC_FILE" "$LATEST_VERSION"
+        UPDATED=$((UPDATED + 1))
+        UPDATED_PACKAGES+=("dux-icons: $CURRENT_VERSION → $LATEST_VERSION")
+    else
+        echo "   ✓ Already up to date"
+    fi
+else
+    echo "   ⚠ Could not fetch latest version"
+fi
+
 if [[ "$SYNC_LEGACY" == true ]]; then
     echo ""
     echo "📦 Syncing legacy-name specs..."
@@ -1228,6 +1259,7 @@ if [[ -n "${COPR_REBUILD_COUNT:-}" || -n "${COPR_REBUILD_PACKAGE:-}" ]]; then
         distro/fedora/dux-edit/dux-edit-git.spec
         distro/fedora/dux-greeter/dux-greeter.spec
         distro/fedora/dux-greeter/dux-greeter-git.spec
+        distro/fedora/dux-icons/dux-icons.spec
     )
 
     case "${COPR_REBUILD_PACKAGE}" in
@@ -1251,6 +1283,7 @@ if [[ -n "${COPR_REBUILD_COUNT:-}" || -n "${COPR_REBUILD_PACKAGE:-}" ]]; then
         dux-edit-git) _copr_bump_spec_release distro/fedora/dux-edit/dux-edit-git.spec ;;
         dux-greeter) _copr_bump_spec_release distro/fedora/dux-greeter/dux-greeter.spec ;;
         dux-greeter-git) _copr_bump_spec_release distro/fedora/dux-greeter/dux-greeter-git.spec ;;
+        dux-icons) _copr_bump_spec_release distro/fedora/dux-icons/dux-icons.spec ;;
         all)
             for rel in "${ALL_SPECS_BUMP[@]}"; do
                 _copr_bump_spec_release "$rel"

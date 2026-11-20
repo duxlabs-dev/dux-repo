@@ -43,7 +43,7 @@ if [[ $# -lt 1 ]]; then
     echo ""
     echo "Available packages:"
     echo "  cli11, quickshell, quickshell-git, dux-qt-base, dux-qt-base-git, dux-calendar, dux-calendar-git, dux-files, dux-files-git,"
-    echo "  dux-edit, dux-edit-git, dux-greeter, dux-greeter-git,"
+    echo "  dux-edit, dux-edit-git, dux-greeter, dux-greeter-git, dux-icons,"
     echo "  dux-gop, matugen, ghostty, dux-search, material-symbols-fonts, qt6ct-kde,"
     echo "  greetd, gtk4-layer-shell, cava, alacritty, xwayland-satellite (EL10 only)"
     exit 1
@@ -61,7 +61,7 @@ declare -A LEGACY_NAME=(
 )
 if [[ "$COPR_OWNER" == "avengemedia" ]]; then
     case "$PACKAGE" in
-        dux-qt-base|dux-qt-base-git|dux-files-git|dux-edit|dux-edit-git|dux-calendar-git|dux-greeter-git|dankcalendar-git|dms-greeter-git)
+        dux-qt-base|dux-qt-base-git|dux-files-git|dux-edit|dux-edit-git|dux-icons|dux-calendar-git|dux-greeter-git|dankcalendar-git|dms-greeter-git)
             error "$PACKAGE is not published to the legacy $COPR_OWNER project"
             exit 1
             ;;

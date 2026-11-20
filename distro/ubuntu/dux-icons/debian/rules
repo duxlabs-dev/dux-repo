@@ -1,0 +1,21 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	# Nothing to build: the generator is a standard-library Python script
+
+override_dh_auto_install:
+	$(MAKE) install PREFIX=/usr DESTDIR=$(CURDIR)/debian/dux-icons
+	sed -i '1s|^#!/usr/bin/env python3|#!/usr/bin/python3|' \
+		debian/dux-icons/usr/share/dux-icons/scripts/build.py
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	python3 -m unittest
+endif
+
+override_dh_auto_clean:
+	find . -name __pycache__ -prune -exec rm -rf {} +
+	dh_auto_clean

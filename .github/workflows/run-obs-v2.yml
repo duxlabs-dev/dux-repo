@@ -19,6 +19,7 @@ on:
           - dux-gop
           - dux-greeter
           - dux-greeter-git
+          - dux-icons
           - dux-search
           - ghostty
           - matugen

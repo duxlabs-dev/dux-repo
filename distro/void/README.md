@@ -10,6 +10,7 @@ Each builds from source from its upstream release.
 | `dux-calendar` | `dcal` | [duxlabs-dev/dux-calendar](https://github.com/duxlabs-dev/dux-calendar) | Calendar app (Local, Google, CalDAV, iCloud) |
 | `dux-files` | `dfiles` | [duxlabs-dev/dux-files](https://github.com/duxlabs-dev/dux-files) | File manager |
 | `dux-edit` | `dux-edit`, `dedit` | [duxlabs-dev/dux-edit](https://github.com/duxlabs-dev/dux-edit) | Text and document editor |
+| `dux-icons` | `dux-icons` | [duxlabs-dev/dux-icons](https://github.com/duxlabs-dev/dux-icons) | Icon theme generator (Material colors) |
 | `dux-qt-base` | `libdux-qt-base.so.0` | [duxlabs-dev/dux-qt-base](https://github.com/duxlabs-dev/dux-qt-base) | Quickshell QML runtime shared library (`-devel` split) |
 | `dux-greeter` | `dms-greeter` | [duxlabs-dev/dux-greeter](https://github.com/duxlabs-dev/dux-greeter) | greetd login screen (stable release) |
 | `dux-greeter-git` | `dms-greeter` | [duxlabs-dev/dux-greeter](https://github.com/duxlabs-dev/dux-greeter) | greetd login screen (master snapshot) |

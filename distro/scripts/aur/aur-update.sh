@@ -25,6 +25,7 @@ PACKAGES=(
     "dux-edit-bin:duxlabs-dev/dux-edit:release"
     "dux-files-bin:duxlabs-dev/dux-files:release"
     "dux-greeter-bin:duxlabs-dev/dux-greeter:release"
+    "dux-icons:duxlabs-dev/dux-icons:release"
     "dux-search-bin:duxlabs-dev/dux-search:release"
     "dux-qt-base:duxlabs-dev/dux-qt-base:release"
     "dux-qt-base-bin:duxlabs-dev/dux-qt-base:release"

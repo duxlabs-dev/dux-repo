@@ -1,0 +1,23 @@
+Source: dux-icons
+Section: graphics
+Priority: optional
+Maintainer: Dux Labs <DuxLabsDev@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               python3:any
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/duxlabs-dev/dux-icons
+Vcs-Browser: https://github.com/duxlabs-dev/dux-icons
+Vcs-Git: https://github.com/duxlabs-dev/dux-icons.git
+
+Package: dux-icons
+Architecture: all
+Depends: ${misc:Depends},
+         python3:any,
+         hicolor-icon-theme
+Description: Icon theme generator that follows your Material colors
+ Dux Icons builds a freedesktop icon theme of scalable SVGs from the
+ desktop's Material colors: each installed app's own icon framed on a common
+ badge, plus folders, places and file types drawn for the theme. DMS
+ rebuilds it on every wallpaper or theme change; elsewhere run dux-icons
+ with the colors to use.

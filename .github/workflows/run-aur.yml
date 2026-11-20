@@ -17,6 +17,7 @@ on:
           - dux-edit-bin
           - dux-files-bin
           - dux-greeter-bin
+          - dux-icons
           - dux-search-bin
           - dux-qt-base
           - dux-qt-base-bin

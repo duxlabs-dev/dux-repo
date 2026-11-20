@@ -61,6 +61,7 @@ PACKAGES=(
     "dux-files-git:duxlabs-dev/dux-files:git"
     "dux-edit:duxlabs-dev/dux-edit:release"
     "dux-edit-git:duxlabs-dev/dux-edit:git"
+    "dux-icons:duxlabs-dev/dux-icons:release"
     "dux-gop:duxlabs-dev/dux-gop:release"
     "dux-qt-base:duxlabs-dev/dux-qt-base:release"
     "dux-qt-base-git:duxlabs-dev/dux-qt-base:git"

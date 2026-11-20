@@ -67,7 +67,7 @@ fi
 TEMP_DIR=$(mktemp -d "$TEMP_BASE/ppa_build_XXXXXX")
 trap "rm -rf $TEMP_DIR" EXIT
 
-AVAILABLE_PACKAGES=(cpptrace dux-search dux-gop ghostty matugen niri niri-git quickshell quickshell-git dux-qt-base dux-qt-base-git xwayland-satellite xwayland-satellite-git dux-calendar dux-calendar-git dux-files dux-files-git dux-edit dux-edit-git dux-greeter dux-greeter-git)
+AVAILABLE_PACKAGES=(cpptrace dux-search dux-gop ghostty matugen niri niri-git quickshell quickshell-git dux-qt-base dux-qt-base-git xwayland-satellite xwayland-satellite-git dux-calendar dux-calendar-git dux-files dux-files-git dux-edit dux-edit-git dux-greeter dux-greeter-git dux-icons)
 declare -A RENAMED_TO=(
     [danksearch]=dux-search
     [dgop]=dux-gop
@@ -222,7 +222,7 @@ done
 
 # 2.2-era packages with no legacy twin, and git snapshots that need dux-qt-base; the legacy owner never gets them
 case "$PACKAGE" in
-    dux-qt-base|dux-qt-base-git|dux-files-git|dux-edit|dux-edit-git|dux-calendar-git|dux-greeter-git|dankcalendar-git|dms-greeter-git)
+    dux-qt-base|dux-qt-base-git|dux-files-git|dux-edit|dux-edit-git|dux-icons|dux-calendar-git|dux-greeter-git|dankcalendar-git|dms-greeter-git)
         if [[ "$PPA_OWNER" == "avengemedia" ]]; then
             info "$PACKAGE is not published to ppa:${PPA_OWNER}, nothing to do"
             exit 0
@@ -605,6 +605,10 @@ case "$PACKAGE_KIND" in
         GIT_REPO="duxlabs-dev/dux-greeter"
         SOURCE_DIR="${PACKAGE_NAME}-source"
         NO_LINTIAN="true"
+        ;;
+    dux-icons)
+        # Releases carry no assets: built from the tag's source archive
+        GIT_REPO="duxlabs-dev/dux-icons"
         ;;
     dux-gop)
         # dux-gop uses pre-built binary from releases
@@ -1109,6 +1113,16 @@ case "$PACKAGE_KIND" in
             tar -xzf dux-qt-base-download.tar.gz --strip-components=1
             rm dux-qt-base-download.tar.gz
             success "dux-qt-base source extracted"
+        fi
+        ;;
+    dux-icons)
+        info "Downloading dux-icons source..."
+        VERSION=$(dpkg-parsechangelog -S Version | sed 's/-[^-]*$//' | sed 's/ppa[0-9]*$//')
+        if [ ! -f "scripts/build.py" ]; then
+            wget -O dux-icons-download.tar.gz "https://github.com/duxlabs-dev/dux-icons/archive/refs/tags/v${VERSION}.tar.gz"
+            tar -xzf dux-icons-download.tar.gz --strip-components=1
+            rm dux-icons-download.tar.gz
+            success "dux-icons source extracted"
         fi
         ;;
     cpptrace)

@@ -23,6 +23,7 @@ on:
           - dux-qt-base
           - dux-greeter
           - dux-greeter-git
+          - dux-icons
         default: 'all'
       force_rebuild:
         description: 'Force rebuilding packages even if they already exist in the repository'
@@ -72,7 +73,7 @@ jobs:
           SELECTED: ${{ github.event.inputs.package || 'all' }}
         run: |
           # Transitional old-name metas last: xbps-src needs their targets built first.
-          ALL="dux-gop dux-search dux-calendar dux-files dux-qt-base dux-edit dux-greeter-git dux-greeter dgop danksearch dankcalendar dms-greeter-git dms-greeter"
+          ALL="dux-gop dux-search dux-calendar dux-files dux-qt-base dux-edit dux-icons dux-greeter-git dux-greeter dgop danksearch dankcalendar dms-greeter-git dms-greeter"
           case "$EVENT_NAME" in
             repository_dispatch)
               case "$DISPATCH_TYPE" in
