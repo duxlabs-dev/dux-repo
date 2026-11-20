@@ -1,7 +1,7 @@
 %global debug_package %{nil}
 
-%global commit      3342f131ea32bdd4e18fd8946289cf181962bc72
-%global commits     197
+%global commit      ecb26e7a1c1fdf3e7f552c9ecaaf5f1ef19b050a
+%global commits     199
 %global snapdate    20261120
 %global tag         2.1.3
 # dux-qml-common submodule commit for %%{commit} (GitHub archives ship submodules empty)
