@@ -109,5 +109,5 @@ install -Dm644 completions/dux-edit.fish \
 %{_datadir}/fish/vendor_completions.d/dux-edit.fish
 
 %changelog
-* Wed Nov 18 2026 Avenge Media <AvengeMedia.US@gmail.com> - 0.1.0+git15.67ad782e-1
+* Wed Nov 18 2026 Dux Labs <DuxLabsDev@gmail.com> - 0.1.0+git15.67ad782e-1
 - Initial git package (commit 67ad782e)

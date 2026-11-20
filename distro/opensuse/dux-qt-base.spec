@@ -100,5 +100,5 @@ DESTDIR=%{buildroot} cmake --install build
 %{_libdir}/pkgconfig/dux-qt-base.pc
 
 %changelog
-* Fri Nov 06 2026 Avenge Media <AvengeMedia.US@gmail.com> - 0.3.2-1
+* Fri Nov 06 2026 Dux Labs <DuxLabsDev@gmail.com> - 0.3.2-1
 - initial library packaging

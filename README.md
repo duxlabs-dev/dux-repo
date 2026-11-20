@@ -2,19 +2,33 @@
 
 <div align="center">
   <a href="https://duxlabs.dev">
-    <img src="assets/danklogo.svg" alt="Dux Labs" width="200">
+    <img src="assets/duxlogo.svg" alt="Dux Labs" width="200">
   </a>
 
-  ### DMS Wayland desktop environment packages built for Debian, Ubuntu, Fedora, and OpenSUSE
+  ### Packages for DMS (Dux Modular Shell) and Dux Labs apps on Fedora, Debian, Ubuntu, openSUSE, Void and Arch
 
   Built with [Quickshell](https://quickshell.org/) and [Go](https://go.dev/)
 
 [![GitHub stars](https://img.shields.io/github/stars/duxlabs-dev/dux-repo?style=for-the-badge&labelColor=101418&color=ffd700)](https://github.com/duxlabs-dev/dux-repo/stargazers)
 [![GitHub License](https://img.shields.io/github/license/duxlabs-dev/dux-repo?style=for-the-badge&labelColor=101418&color=b9c8da)](https://github.com/duxlabs-dev/dux-repo/blob/master/LICENSE)
-[![OBS Build](https://img.shields.io/badge/OBS-building-success?style=for-the-badge&labelColor=101418&color=73ba25&logo=opensuse)](https://build.opensuse.org/project/show/home:AvengeMedia:danklinux)
-[![Ko-Fi donate](https://img.shields.io/badge/donate-kofi?style=for-the-badge&logo=ko-fi&logoColor=ffffff&label=ko-fi&labelColor=101418&color=f16061)](https://ko-fi.com/avengemediallc)
+[![OBS Build](https://img.shields.io/badge/OBS-building-success?style=for-the-badge&labelColor=101418&color=73ba25&logo=opensuse)](https://build.opensuse.org/project/show/home:duxlabs-dev:dux-repo)
+[![Ko-Fi donate](https://img.shields.io/badge/donate-kofi?style=for-the-badge&logo=ko-fi&logoColor=ffffff&label=ko-fi&labelColor=101418&color=f16061)](https://ko-fi.com/duxlabs)
 
 </div>
+
+## Channels
+
+Each distro has a **dux-repo** channel (dependencies and apps) and a channel for DMS itself: **dms** (stable releases) or **dms-git** (nightly builds). Enable dux-repo plus one of the two DMS channels.
+
+| Distro | dux-repo | DMS stable | DMS nightly |
+| --- | --- | --- | --- |
+| Fedora 43+ (Copr) | [`duxlabs/dux-repo`](https://copr.fedorainfracloud.org/coprs/duxlabs/dux-repo/) | [`duxlabs/dms`](https://copr.fedorainfracloud.org/coprs/duxlabs/dms/) | [`duxlabs/dms-git`](https://copr.fedorainfracloud.org/coprs/duxlabs/dms-git/) |
+| Ubuntu 26.04 LTS / 26.10 (PPA) | [`ppa:duxlabs/dux-repo`](https://launchpad.net/~duxlabs/+archive/ubuntu/dux-repo) | [`ppa:duxlabs/dms`](https://launchpad.net/~duxlabs/+archive/ubuntu/dms) | [`ppa:duxlabs/dms-git`](https://launchpad.net/~duxlabs/+archive/ubuntu/dms-git) |
+| Debian 13 / Testing / Unstable, openSUSE Tumbleweed / Slowroll / Leap 16.0 / 16.1 (OBS) | [`home:duxlabs-dev:dux-repo`](https://build.opensuse.org/project/show/home:duxlabs-dev:dux-repo) | [`home:duxlabs-dev:dms`](https://build.opensuse.org/project/show/home:duxlabs-dev:dms) | [`home:duxlabs-dev:dms-git`](https://build.opensuse.org/project/show/home:duxlabs-dev:dms-git) |
+| Void Linux (XBPS) | `void.duxlabs.dev/dux-repo/current` | `void.duxlabs.dev/dms/current` (`dms`) | `void.duxlabs.dev/dms/current` (`dms-git`) |
+| Arch Linux | [AUR](https://aur.archlinux.org/packages?K=dux-) | `dux-shell` (Arch `extra`) | `dux-shell-git` (AUR) |
+
+All channels build for **x86_64** and **aarch64** (openSUSE Slowroll is x86_64 only).
 
 ## Available Packages
 
@@ -38,10 +52,101 @@
 - **dux-edit-git** - Dux Edit built from upstream master
 - **dux-gop** - System package manager integration tool (`dgop`)
 - **dux-greeter** / **dux-greeter-git** - greetd greeter (`dms-greeter`)
+- **ghostty** - GPU-accelerated terminal emulator
+
+## Installation
+
+> **📖 Full installation guide**: [duxlabs.dev/docs/dms/installation](https://duxlabs.dev/docs/dms/installation)
+
+Adding dux-repo and a DMS channel is enough: installing `dms` (or `dms-git`) pulls in its dependencies. Add any of the apps above with the same package manager, e.g. `dux-files dux-edit dux-calendar dux-greeter ghostty`.
+
+<details>
+<summary><b>Fedora 43+ (Copr)</b></summary>
+
+```bash
+sudo dnf copr enable duxlabs/dux-repo
+sudo dnf copr enable duxlabs/dms        # or duxlabs/dms-git for nightly builds
+sudo dnf install dms niri
+```
+
+Both DMS projects ship the package as `dms`; enable only one of them.
+
+</details>
+
+<details>
+<summary><b>Ubuntu 26.04 LTS / 26.10 (Launchpad PPA)</b></summary>
+
+```bash
+sudo add-apt-repository ppa:duxlabs/dux-repo
+sudo add-apt-repository ppa:duxlabs/dms        # or ppa:duxlabs/dms-git
+sudo apt update && sudo apt install dms niri   # or dms-git
+```
+
+> **Note**: Ubuntu 25.10 and older are not supported.
+
+</details>
+
+<details>
+<summary><b>Debian 13 / Testing / Unstable (OBS)</b></summary>
+
+```bash
+DIST=Debian_13   # or Debian_Testing, Debian_Unstable
+CHANNEL=dms      # or dms-git
+OBS=https://download.opensuse.org/repositories/home:/duxlabs-dev:
+for repo in dux-repo $CHANNEL; do
+  curl -fsSL "$OBS/$repo/$DIST/Release.key" | sudo gpg --dearmor -o /etc/apt/keyrings/$repo.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/$repo.gpg] $OBS/$repo/$DIST/ /" | sudo tee /etc/apt/sources.list.d/$repo.list
+done
+sudo apt update && sudo apt install $CHANNEL niri
+```
+
+</details>
+
+<details>
+<summary><b>openSUSE Tumbleweed / Slowroll / Leap 16 (OBS)</b></summary>
+
+```bash
+DIST=openSUSE_Tumbleweed   # or openSUSE_Slowroll, 16.0, 16.1
+CHANNEL=dms                # or dms-git
+OBS=https://download.opensuse.org/repositories/home:duxlabs-dev:
+sudo zypper addrepo $OBS/dux-repo/$DIST/home:duxlabs-dev:dux-repo.repo
+sudo zypper addrepo $OBS/$CHANNEL/$DIST/home:duxlabs-dev:$CHANNEL.repo
+sudo zypper refresh && sudo zypper install $CHANNEL
+```
+
+For a compositor, install `niri-git` from dux-repo (or `niri` from Tumbleweed).
+
+</details>
+
+<details>
+<summary><b>Void Linux (XBPS)</b></summary>
+
+```bash
+echo "repository=https://void.duxlabs.dev/dux-repo/current" | sudo tee /etc/xbps.d/dux.conf
+echo "repository=https://void.duxlabs.dev/dms/current" | sudo tee /etc/xbps.d/dms.conf
+sudo xbps-install -S dms   # or dms-git
+```
+
+On the first sync `xbps-install` shows the repository signing key and asks you to trust it. See [distro/void](distro/void/README.md) for details.
+
+</details>
+
+<details>
+<summary><b>Arch Linux</b></summary>
+
+```bash
+sudo pacman -S dux-shell          # DMS stable, from Arch extra
+# or the nightly build and apps from the AUR, e.g. with paru:
+paru -S dux-shell-git dux-files-bin dux-edit-bin dux-calendar-bin
+```
+
+</details>
+
+> See [DMS](https://github.com/duxlabs-dev/dux-shell) for full documentation and configuration. To use niri, pick it from your display manager and configure it in `~/.config/niri/config.kdl`.
 
 ### Renamed packages
 
-Some packages were renamed in the `duxlabs` repositories; the legacy `avengemedia` repositories keep the old names until they are retired. In the `duxlabs` repositories the old names remain as transitional/obsoleted packages, so upgrading moves you to the new name automatically with your regular update command (`dnf upgrade`, `apt upgrade`, `xbps-install -Su`). Binaries keep their names.
+Some packages were renamed in the Dux Labs channels. There the old names remain as transitional/obsoleted packages, so your regular update command (`dnf upgrade`, `apt upgrade`, `xbps-install -Su`) moves you to the new name automatically. Binaries keep their names.
 
 | Old name | New name |
 | --- | --- |
@@ -50,179 +155,28 @@ Some packages were renamed in the `duxlabs` repositories; the legacy `avengemedi
 | `dgop` | `dux-gop` |
 | `dms-greeter` / `dms-greeter-git` | `dux-greeter` / `dux-greeter-git` |
 
-## Installation
+### Migrating from AvengeMedia / danklinux
 
-> **📖 Full installation guide**: [duxlabs.dev/docs/dms/installation](https://duxlabs.dev/docs/dms/installation)
+The legacy AvengeMedia channels (`avengemedia/danklinux`, `avengemedia/dms` and `avengemedia/dms-git` on Copr and Launchpad, `home:AvengeMedia:*` on OBS, and the old Void mirrors) are deprecated and frozen: their git builds no longer update, new packages such as `dux-qt-base` and `dux-edit` are never published there, and they will be retired. Switch to the channels above:
 
-### DMS Desktop Environment
+- **DMS 2.1.0 or newer**: run `dms migrate dux` (add `--dry-run` to preview). It adds the Dux Labs repositories, removes the legacy ones, switches installed packages over on openSUSE and installs renamed packages under their new names on Debian.
+- **By hand**: remove the old repository files (`danklinux`, `dms`, `dms-git`), then follow [Installation](#installation).
 
-DMS packages are available via OBS (Debian/OpenSUSE), Launchpad PPA (Ubuntu), and Fedora COPR.
+## Automation
 
-> **Required**: DMS depends on packages from the danklinux repository (`quickshell-git`, `matugen`, `cliphist`, `dux-search`, `dux-gop`). Install the [dependencies](#dependencies-danklinux-repository) first, then install DMS. Niri is optional but recommended as the default compositor.
+The Copr, OBS, PPA and Void workflows (`run-copr.yml`, `run-obs-v2.yml`, `run-ppa.yml`, `run-xbps.yml`) run every 6 hours: stable packages follow tagged upstream releases and `-git` packages rebuild when upstream changes. OBS package definitions live in `distro/config/obs-packages.yaml`.
 
-<details>
-<summary><b>Debian 13 / Testing</b></summary>
+#### Automatic rebuilds on Qt updates
 
-```bash
-# 1. First add danklinux repository for dependencies (see below)
+quickshell, quickshell-git, dux-qt-base, dux-qt-base-git and qt6ct-kde link private Qt ABI and must be rebuilt whenever Fedora ships a new qt6-qtbase, qt6-qtdeclarative or qt6-qtwayland. The `Rebuild for Fedora Qt updates` workflow (`.github/workflows/run-qt-rebuild.yml`) runs hourly: it queries the Fedora repos for every Fedora chroot in the Copr project, compares against `distro/fedora/qt6-baseline.json`, bumps the Qt-linked specs once and triggers the Copr builds. Run it by hand from the Actions tab, or fire `repository_dispatch` with event type `fedora-qt-update` (an external watcher does this when a matching Bodhi update reaches stable).
 
-# 2. Add DMS stable repository
-curl -fsSL https://download.opensuse.org/repositories/home:AvengeMedia:dms/Debian_13/Release.key | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/dms.gpg
-echo "deb [signed-by=/etc/apt/keyrings/dms.gpg] https://download.opensuse.org/repositories/home:/AvengeMedia:/dms/Debian_13/ /" | \
-  sudo tee /etc/apt/sources.list.d/dms.list
-sudo apt update && sudo apt install dms
+Debian and Ubuntu get the same treatment from `Rebuild for Debian/Ubuntu Qt updates` (`.github/workflows/run-qt-rebuild-deb.yml`, hourly): it reads the published OBS Debian repos and the Ubuntu archive, keeps `distro/qt6-baseline-deb.json`, bumps `.dbN` on OBS (debian only, openSUSE rebuilds itself) and uploads `ppaN` for the affected Ubuntu series only. Void gets `Rebuild for Void Qt updates` (`.github/workflows/run-qt-rebuild-void.yml`, hourly): it reads the Void `current` repodata, keeps `distro/void/qt6-baseline.json`, bumps `revision` in the `dux-qt-base` template and dispatches `run-xbps.yml` for it. quickshell on Void is Void's own package and is rebuilt by Void.
 
-# Or for nightly builds (dms-git)
-curl -fsSL https://download.opensuse.org/repositories/home:AvengeMedia:dms-git/Debian_13/Release.key | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/dms-git.gpg
-echo "deb [signed-by=/etc/apt/keyrings/dms-git.gpg] https://download.opensuse.org/repositories/home:/AvengeMedia:/dms-git/Debian_13/ /" | \
-  sudo tee /etc/apt/sources.list.d/dms-git.list
-sudo apt update && sudo apt install dms-git
-```
+Arch gets `Rebuild for Arch Qt updates` (`.github/workflows/run-qt-rebuild-arch.yml`, hourly): it reads the Arch x86_64 package API and the Arch Linux ARM `extra.db`, keeps `distro/arch/qt6-baseline.json`, and when a whole qt6 set moved it reruns the dux-qt-base `Create Release` workflow for the latest tag so fresh `dux-qt-base-<ver>-qt<qtver>-<arch>.tar.zst` assets exist, then dispatches `run-aur.yml` (`arch-qt-rebuild`) to repin `_qtver_<arch>` in `dux-qt-base-bin` and bump `pkgrel` on it and on `dux-qt-base`. An arch whose qt6 packages disagree is left for the next hour so a half-finished rollout is never pinned.
 
-</details>
+#### AUR
 
-<details>
-<summary><b>Ubuntu 26.04 LTS+ (Launchpad PPA)</b></summary>
-
-```bash
-# 1. Add danklinux PPA for dependencies
-sudo add-apt-repository ppa:avengemedia/danklinux
-sudo apt update
-
-# 2. Add DMS stable PPA
-sudo add-apt-repository ppa:avengemedia/dms
-sudo apt update && sudo apt install dms
-
-# Or for nightly builds (dms-git)
-sudo add-apt-repository ppa:avengemedia/dms-git
-sudo apt update && sudo apt install dms-git
-```
-
-> **Note**: Ubuntu 25.04 and older are not supported (require Qt 6.6+)
-
-</details>
-
-<details>
-<summary><b>Fedora 41+ (COPR)</b></summary>
-
-```bash
-# 1. Add danklinux COPR for dependencies
-sudo dnf copr enable avengemedia/danklinux
-
-# 2. Add DMS stable COPR
-sudo dnf copr enable avengemedia/dms
-sudo dnf install dms
-
-# Or for nightly builds (dms-git)
-sudo dnf copr enable avengemedia/dms-git
-sudo dnf install dms
-```
-
-</details>
-
-<details>
-<summary><b>OpenSUSE Tumbleweed</b></summary>
-
-```bash
-# 1. First add danklinux repository for dependencies (see below)
-
-# 2. Add DMS stable repository
-sudo zypper addrepo https://download.opensuse.org/repositories/home:AvengeMedia:dms/openSUSE_Tumbleweed/home:AvengeMedia:dms.repo
-sudo zypper refresh && sudo zypper install dms
-
-# Or for nightly builds (dms-git)
-sudo zypper addrepo https://download.opensuse.org/repositories/home:AvengeMedia:dms-git/openSUSE_Tumbleweed/home:AvengeMedia:dms-git.repo
-sudo zypper refresh && sudo zypper install dms-git
-```
-
-</details>
-
-> See [Dux Shell](https://github.com/duxlabs-dev/dux-shell) for full documentation and configuration.
-
----
-
-### Dependencies (danklinux repository)
-
-These packages are **required** for full DMS functionality:
-
-### Debian 13 (Trixie) / Testing
-
-```bash
-# Add Debian 13 Trixie Repository 
-curl -fsSL https://download.opensuse.org/repositories/home:AvengeMedia:danklinux/Debian_13/Release.key | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/danklinux.gpg
-echo "deb [signed-by=/etc/apt/keyrings/danklinux.gpg] https://download.opensuse.org/repositories/home:/AvengeMedia:/danklinux/Debian_13/ /" | \
-  sudo tee /etc/apt/sources.list.d/danklinux.list
-sudo apt update
-
-# Install packages
-sudo apt install niri quickshell-git matugen cliphist dux-search dux-gop dux-calendar-git dux-files-git
-```
-
-<details>
-<summary><b>Alternative: Debian Testing (Rolling)</b></summary>
-
-```bash
-# Add Debian Testing Repository 
-curl -fsSL https://download.opensuse.org/repositories/home:AvengeMedia:danklinux/Debian_Testing/Release.key | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/danklinux.gpg
-echo "deb [signed-by=/etc/apt/keyrings/danklinux.gpg] https://download.opensuse.org/repositories/home:/AvengeMedia:/danklinux/Debian_Testing/ /" | \
-  sudo tee /etc/apt/sources.list.d/danklinux.list
-sudo apt update && sudo apt install niri quickshell-git matugen cliphist dux-search dux-gop dux-calendar-git dux-files-git
-```
-
-</details>
-
----
-
-### Ubuntu 26.04 LTS+ (Launchpad PPA)
-
-> **Note**: Ubuntu 25.04 and older are not supported (require Qt 6.6+)
-
-```bash
-# Add PPA and install packages
-sudo add-apt-repository ppa:avengemedia/danklinux
-sudo apt update
-sudo apt install niri quickshell-git matugen cliphist dux-search dux-gop dux-calendar-git dux-files-git
-```
-
-### Fedora 41+ (COPR)
-
-```bash
-# Add COPR and install packages
-sudo dnf copr enable avengemedia/danklinux
-sudo dnf install quickshell-git matugen cliphist dux-search dux-gop dux-calendar-git dux-files-git ghostty dux-greeter
-```
-
-### OpenSUSE Tumbleweed
-
-```bash
-# Add repository and install packages
-sudo zypper addrepo https://download.opensuse.org/repositories/home:AvengeMedia:danklinux/openSUSE_Tumbleweed/home:AvengeMedia:danklinux.repo
-sudo zypper refresh
-sudo zypper install niri quickshell-git matugen cliphist dux-search dux-gop dux-calendar-git dux-files-git
-```
-
----
-
-## Architecture Support
-
-All packages support:
-- **x86_64 (AMD64)** - Fully tested
-- **aarch64 (ARM64)** - Built for ARM devices
-
-## Package Variants
-
-- **Stable packages** (`dms`, `niri`, `matugen`, `cliphist`, `dux-greeter`) - Tagged releases
-- **Git packages** (`dms-git`, `niri-git`, `quickshell-git`, `dux-greeter-git`) - Latest development code, rebuilt every 6 hours when upstream changes
-
-## Getting Started
-
-1. Select **niri** or **niri-git** from your display manager
-2. Configure: `~/.config/niri/config.kdl`
-3. For DMS desktop environment, see [Dux Shell](https://github.com/duxlabs-dev/dux-shell)
+The AUR packages we maintain (`dux-*-bin`, `dux-qt-base`, `dux-qt-base-bin`, and the `-git` packages) are pushed by `Update AUR Packages` (`.github/workflows/run-aur.yml`) through `distro/scripts/aur/aur-update.sh`. Release packages follow the latest GitHub release every six hours and on `suite-release`, `greeter-release` and `qt-base-release` dispatches; git packages only move on a manual `pkgrel` bump. The script refreshes checksums with `updpkgsums`, regenerates `.SRCINFO`, and retries the AUR clone and push up to `AUR_RETRIES` (8) times with backoff, rebasing on the remote between attempts. It needs the `AUR_SSH_KEY` and `AUR_KNOWN_HOSTS` secrets.
 
 ## Upstream Projects
 
@@ -235,41 +189,12 @@ All packages support:
 - [Dux Search](https://github.com/duxlabs-dev/dux-search) - Application launcher  
 - [Dgop](https://github.com/duxlabs-dev/dux-gop) - Package manager integration
 
-## Build Status
-
-### Open Build Service (Debian/OpenSUSE)
-- **DMS Stable**: [home:AvengeMedia:dms](https://build.opensuse.org/project/show/home:AvengeMedia:dms)
-- **DMS Nightly**: [home:AvengeMedia:dms-git](https://build.opensuse.org/project/show/home:AvengeMedia:dms-git)
-- **Dependencies**: [home:AvengeMedia:danklinux](https://build.opensuse.org/project/show/home:AvengeMedia:danklinux)
-
-### Launchpad PPA (Ubuntu)
-- **DMS Stable**: [ppa:avengemedia/dms](https://launchpad.net/~avengemedia/+archive/ubuntu/dms)
-- **DMS Nightly**: [ppa:avengemedia/dms-git](https://launchpad.net/~avengemedia/+archive/ubuntu/dms-git)
-- **Dependencies**: [ppa:avengemedia/danklinux](https://launchpad.net/~avengemedia/+archive/ubuntu/danklinux)
-
-### Fedora COPR
-- **DMS Stable**: [avengemedia/dms](https://copr.fedorainfracloud.org/coprs/avengemedia/dms/)
-- **DMS Nightly**: [avengemedia/dms-git](https://copr.fedorainfracloud.org/coprs/avengemedia/dms-git/)
-- **Dependencies**: [avengemedia/danklinux](https://copr.fedorainfracloud.org/coprs/avengemedia/danklinux/)
-
-#### Automatic rebuilds on Fedora Qt updates
-
-quickshell, quickshell-git, dux-qt-base, dux-qt-base-git and qt6ct-kde link private Qt ABI and must be rebuilt whenever Fedora ships a new qt6-qtbase, qt6-qtdeclarative or qt6-qtwayland. The `Rebuild for Fedora Qt updates` workflow (`.github/workflows/run-qt-rebuild.yml`) runs hourly: it queries the Fedora repos for every Fedora chroot in the COPR project, compares against `distro/fedora/qt6-baseline.json`, bumps the Qt-linked specs once and triggers the COPR builds. Run it by hand from the Actions tab, or fire `repository_dispatch` with event type `fedora-qt-update` (the api.danklinux.com server does this when a matching bodhi update reaches stable).
-
-Debian and Ubuntu get the same treatment from `Rebuild for Debian/Ubuntu Qt updates` (`.github/workflows/run-qt-rebuild-deb.yml`, hourly): it reads the published OBS Debian repos and the Ubuntu archive, keeps `distro/qt6-baseline-deb.json`, bumps `.dbN` on OBS (debian only, openSUSE rebuilds itself) and uploads `ppaN` for the affected Ubuntu series only. Void gets `Rebuild for Void Qt updates` (`.github/workflows/run-qt-rebuild-void.yml`, hourly): it reads the Void `current` repodata, keeps `distro/void/qt6-baseline.json`, bumps `revision` in the `dux-qt-base` template and dispatches `run-xbps.yml` for it. quickshell on Void is Void's own package and is rebuilt by Void.
-
-Arch gets `Rebuild for Arch Qt updates` (`.github/workflows/run-qt-rebuild-arch.yml`, hourly): it reads the Arch x86_64 package API and the Arch Linux ARM `extra.db`, keeps `distro/arch/qt6-baseline.json`, and when a whole qt6 set moved it reruns the dux-qt-base `Create Release` workflow for the latest tag so fresh `dux-qt-base-<ver>-qt<qtver>-<arch>.tar.zst` assets exist, then dispatches `run-aur.yml` (`arch-qt-rebuild`) to repin `_qtver_<arch>` in `dux-qt-base-bin` and bump `pkgrel` on it and on `dux-qt-base`. An arch whose qt6 packages disagree is left for the next hour so a half-finished rollout is never pinned.
-
-#### AUR
-
-The AUR packages we maintain (`dux-*-bin`, `dux-qt-base`, `dux-qt-base-bin`, and the `-git` packages) are pushed by `Update AUR Packages` (`.github/workflows/run-aur.yml`) through `distro/scripts/aur/aur-update.sh`. Release packages follow the latest GitHub release every six hours and on `suite-release`, `greeter-release` and `qt-base-release` dispatches; git packages only move on a manual `pkgrel` bump. The script refreshes checksums with `updpkgsums`, regenerates `.SRCINFO`, and retries the AUR clone and push up to `AUR_RETRIES` (8) times with backoff, rebasing on the remote between attempts. It needs the `AUR_SSH_KEY` and `AUR_KNOWN_HOSTS` secrets.
-
 ## Contributing
 
-Packaging specs and automation maintained in this repository.
+Packaging specs and automation are maintained in this repository.
 
-- **Packaging issues**: [GitHub Issues](https://github.com/duxlabs-dev/dux-repo/issues)  
-- **Upstream bugs**: Report to respective project repositories
+- **Packaging issues**: [GitHub Issues](https://github.com/duxlabs-dev/dux-repo/issues)
+- **Upstream bugs**: Report to the respective project repositories
 
 ## License
 

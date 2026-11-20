@@ -14,7 +14,7 @@ go_package="${go_import_path}/cmd/dms-greeter"
 go_build_tags="withshell"
 go_ldflags="-X main.Version=${version}"
 short_desc="Greetd login screen with the Dux Shell aesthetic (git)"
-maintainer="AvengeMedia <AvengeMedia.US@gmail.com>"
+maintainer="Dux Labs <DuxLabsDev@gmail.com>"
 license="MIT"
 homepage="https://github.com/duxlabs-dev/dux-greeter"
 # CI populates distfiles/checksum dynamically; these are placeholders.

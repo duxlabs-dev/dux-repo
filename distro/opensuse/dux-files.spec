@@ -113,5 +113,5 @@ install -Dm644 completions/dfiles.fish \
 %{_datadir}/fish/vendor_completions.d/dfiles.fish
 
 %changelog
-* Tue Oct 20 2026 Avenge Media <AvengeMedia.US@gmail.com> - 2.0.0-1
+* Tue Oct 20 2026 Dux Labs <DuxLabsDev@gmail.com> - 2.0.0-1
 - Initial stable package

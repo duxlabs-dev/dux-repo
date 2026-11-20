@@ -733,7 +733,12 @@ fi
 
 # Add changelog entry
 CHANGELOG_DATE=$(date "+%a %b %d %Y")
-CHANGELOG_ENTRY="* $CHANGELOG_DATE Avenge Media <AvengeMedia.US@gmail.com> - ${BASE_VERSION}-${REBUILD_NUM:-1}"
+# dux-* packages are Dux Labs; the frozen legacy and third-party packages keep Avenge Media
+case "$PACKAGE" in
+    dux-*) CHANGELOG_AUTHOR="Dux Labs <DuxLabsDev@gmail.com>" ;;
+    *) CHANGELOG_AUTHOR="Avenge Media <AvengeMedia.US@gmail.com>" ;;
+esac
+CHANGELOG_ENTRY="* $CHANGELOG_DATE $CHANGELOG_AUTHOR - ${BASE_VERSION}-${REBUILD_NUM:-1}"
 
 if [[ -n "$REBUILD_NUM" ]]; then
     CHANGELOG_MESSAGE="- Rebuild #$REBUILD_NUM"

@@ -448,6 +448,14 @@ fi
 mkdir -p "$BUILD_DIR"
 cp -r "$PACKAGE_DIR/debian" "$BUILD_DIR/"
 
+# Trailer for generated changelog entries: the package's own debian/control Maintainer
+# (Dux Labs for dux-*, Avenge Media for the frozen legacy and third-party packages)
+changelog_maintainer() {
+    local maintainer
+    maintainer=$(sed -n 's/^Maintainer:[[:space:]]*//p' "$BUILD_DIR/debian/control" 2>/dev/null | head -n1)
+    echo "${maintainer:-Avenge Media <AvengeMedia.US@gmail.com>}"
+}
+
 cd "$BUILD_DIR"
 select_changelog_series
 CHANGELOG_VERSION=$(dpkg-parsechangelog -S Version)
@@ -802,7 +810,7 @@ if [ "$IS_GIT_PACKAGE" = true ] && [ -n "$GIT_REPO" ]; then
 
   * Git snapshot (commit ${GIT_COMMIT_COUNT}: ${GIT_COMMIT_HASH})
 
- -- Avenge Media <AvengeMedia.US@gmail.com>  $(date -R)"
+ -- $(changelog_maintainer)  $(date -R)"
         
         echo "$CHANGELOG_ENTRY" > debian/changelog
         if [ -n "$CHANGELOG_CONTENT" ]; then
@@ -1036,7 +1044,7 @@ elif [ -n "$GIT_REPO" ] && [ "${SKIP_VERSION_UPDATE:-false}" != "true" ]; then
 
   * ${CHANGELOG_MSG}
 
- -- Avenge Media <AvengeMedia.US@gmail.com>  $(date -R)"
+ -- $(changelog_maintainer)  $(date -R)"
             echo "$CHANGELOG_ENTRY" > debian/changelog
             if [ -n "$CHANGELOG_CONTENT" ]; then
                 echo "" >> debian/changelog
@@ -1075,7 +1083,7 @@ elif [ -n "$GIT_REPO" ] && [ "${SKIP_VERSION_UPDATE:-false}" != "true" ]; then
 
   * ${CHANGELOG_MSG}
 
- -- Avenge Media <AvengeMedia.US@gmail.com>  $(date -R)"
+ -- $(changelog_maintainer)  $(date -R)"
             echo "$CHANGELOG_ENTRY" > debian/changelog
             if [ -n "$CHANGELOG_CONTENT" ]; then
                 echo "" >> debian/changelog

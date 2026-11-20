@@ -1,7 +1,7 @@
 Source: dux-gop
 Section: utils
 Priority: optional
-Maintainer: Avenge Media <AvengeMedia.US@gmail.com>
+Maintainer: Dux Labs <DuxLabsDev@gmail.com>
 Build-Depends: debhelper-compat (= 13),
                wget,
                gzip

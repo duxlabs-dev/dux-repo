@@ -15,7 +15,7 @@ makedepends="qt6-base-private-devel qt6-declarative-private-devel
  polkit-devel glib-devel libdrm-devel MesaLib-devel Vulkan-Headers"
 depends="qt6-wayland"
 short_desc="Quickshell QML runtime as a shared library with a C entry point"
-maintainer="AvengeMedia <AvengeMedia.US@gmail.com>"
+maintainer="Dux Labs <DuxLabsDev@gmail.com>"
 license="LGPL-3.0-only"
 homepage="https://github.com/duxlabs-dev/dux-qt-base"
 changelog="https://github.com/duxlabs-dev/dux-qt-base/releases"

@@ -184,6 +184,11 @@ update_changelog() {
     local source_name
     source_name=$(head -1 "$changelog" | cut -d' ' -f1)
     
+    # The package's own debian/control Maintainer (Dux Labs for dux-*, Avenge Media for legacy)
+    local maintainer
+    maintainer=$(sed -n 's/^Maintainer:[[:space:]]*//p' "$package_dir/debian/control" 2>/dev/null | head -n1)
+    maintainer="${maintainer:-Avenge Media <AvengeMedia.US@gmail.com>}"
+
     local temp_changelog
     temp_changelog=$(mktemp)
     if [[ "$package_dir" == "$REPO_ROOT/distro/ubuntu/"* ]]; then
@@ -193,7 +198,7 @@ update_changelog() {
                 echo ""
                 echo "  * $message"
                 echo ""
-                echo " -- Avenge Media <AvengeMedia.US@gmail.com>  $(date -R)"
+                echo " -- $maintainer  $(date -R)"
                 echo ""
             done
             cat "$changelog"
@@ -204,7 +209,7 @@ update_changelog() {
             echo ""
             echo "  * $message"
             echo ""
-            echo " -- Avenge Media <AvengeMedia.US@gmail.com>  $(date -R)"
+            echo " -- $maintainer  $(date -R)"
             echo ""
             cat "$changelog"
         } > "$temp_changelog"

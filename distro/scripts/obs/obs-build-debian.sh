@@ -657,6 +657,10 @@ if [[ -n "$DEB_EPOCH" ]]; then
     log_info "Debian epoch: $DEB_EPOCH (changelog version $DEB_VERSION)"
 fi
 
+# Sign the entry as the package's debian/control Maintainer (Dux Labs for dux-*, Avenge Media for legacy)
+CHANGELOG_MAINTAINER=$(sed -n 's/^Maintainer:[[:space:]]*//p' "$SOURCE_DIR/debian/control" 2>/dev/null | head -n1)
+CHANGELOG_MAINTAINER="${CHANGELOG_MAINTAINER:-Avenge Media <AvengeMedia.US@gmail.com>}"
+
 TEMP_CHANGELOG=$(mktemp)
 {
     echo "$SOURCE_NAME ($DEB_VERSION) unstable; urgency=medium"
@@ -670,7 +674,7 @@ TEMP_CHANGELOG=$(mktemp)
         echo "  * Update to upstream version $BASE_VERSION"
     fi
     echo ""
-    echo " -- Avenge Media <AvengeMedia.US@gmail.com>  $(date -R)"
+    echo " -- $CHANGELOG_MAINTAINER  $(date -R)"
     echo ""
     cat "$CHANGELOG"
 } > "$TEMP_CHANGELOG"

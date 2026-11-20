@@ -136,5 +136,5 @@ install -Dm644 completions/dfiles.fish \
 %{_datadir}/fish/vendor_completions.d/dfiles.fish
 
 %changelog
-* Tue Oct 20 2026 Avenge Media <AvengeMedia.US@gmail.com> - 0.0.1+git64.14d39823-1
+* Tue Oct 20 2026 Dux Labs <DuxLabsDev@gmail.com> - 0.0.1+git64.14d39823-1
 - Initial git package (commit 14d39823)

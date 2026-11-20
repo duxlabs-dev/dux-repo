@@ -90,5 +90,5 @@ install -Dm644 completions/dux-edit.fish \
 %{_datadir}/fish/vendor_completions.d/dux-edit.fish
 
 %changelog
-* Tue Nov 17 2026 Avenge Media <AvengeMedia.US@gmail.com> - 0.1.0-1
+* Tue Nov 17 2026 Dux Labs <DuxLabsDev@gmail.com> - 0.1.0-1
 - Initial stable package
