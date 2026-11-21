@@ -79,6 +79,7 @@ use `#cgo pkg-config: dux-qt-base`.
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_INSTALL_LIBDIR=%{_lib} \
         -DDISTRIBUTOR="Fedora COPR (%{name})" \
+        -DCRASH_HANDLER=OFF \
         -DGIT_REVISION="%{commit}"
 %cmake_build
 

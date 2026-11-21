@@ -6,6 +6,7 @@ build_style=cmake
 configure_args="-DCMAKE_BUILD_TYPE=RelWithDebInfo
  -DCMAKE_INSTALL_LIBDIR=lib
  -DDISTRIBUTOR=Void
+ -DCRASH_HANDLER=OFF
  -DGIT_REVISION=v${version}"
 hostmakedepends="pkg-config qt6-base qt6-declarative-host-tools qt6-shadertools
  qt6-wayland-tools wayland-devel SPIRV-Tools"

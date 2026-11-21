@@ -78,6 +78,7 @@ cmake -GNinja -B build \
     -DCMAKE_INSTALL_PREFIX=%{_prefix} \
     -DCMAKE_INSTALL_LIBDIR=%{_lib} \
     -DDISTRIBUTOR="openSUSE OBS (%{name})" \
+    -DCRASH_HANDLER=OFF \
     -DGIT_REVISION="v%{version}"
 cmake --build build
 

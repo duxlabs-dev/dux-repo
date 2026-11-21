@@ -20,6 +20,7 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		-DDISTRIBUTOR="Ubuntu PPA (libdux-qt-base0)" \
+		-DCRASH_HANDLER=OFF \
 		-DGIT_REVISION="$(if $(GIT_REVISION),$(GIT_REVISION),unknown)"
 
 override_dh_auto_test:
