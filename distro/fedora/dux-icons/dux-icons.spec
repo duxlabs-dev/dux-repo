@@ -1,5 +1,5 @@
 Name:               dux-icons
-Version:            0.1.3
+Version:            0.2.0
 Release:            1%{?dist}
 Summary:            Icon theme generator that follows your Material colors
 
@@ -42,5 +42,8 @@ sed -i '1s|^#!/usr/bin/env python3|#!%{python3}|' %{buildroot}%{_datadir}/dux-ic
 %{_datadir}/dux-icons
 
 %changelog
+* Sun Nov 22 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 0.2.0-1
+- update to 0.2.0
+
 * Fri Nov 20 2026 Dux Labs <DuxLabsDev@gmail.com> - 0.1.3-1
 - Initial stable package
